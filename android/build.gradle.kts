@@ -19,3 +19,13 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+// FORCE FIX: Assign a namespace to old libraries (like Isar) immediately when they load
+subprojects {
+    plugins.withId("com.android.library") {
+        val android = extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)
+        if (android != null && android.namespace == null) {
+            android.namespace = project.group.toString()
+        }
+    }
+}
