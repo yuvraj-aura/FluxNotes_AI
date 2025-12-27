@@ -1,0 +1,38 @@
+name: Build Android APK
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          # Defaults to latest stable (currently > 3.24.0 needed for dependencies) 
+
+      - name: Get Dependencies
+        run: flutter pub get
+
+      - name: Build APK
+        # We use --debug because we haven't set up keystores for release yet
+        run: flutter build apk --debug
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v3
+        with:
+          name: fluxnotes-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk

@@ -1,0 +1,109 @@
+import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flux_notes/data/models/note_model.dart';
+import 'package:google_generative_ai/google_generative_ai.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+class NoKeyException implements Exception {
+  final String message =
+      "Please set your Gemini API Key in Settings to use AI features.";
+  @override
+  String toString() => message;
+}
+
+class AIService {
+  static const String _apiKeyKey = 'gemini_api_key';
+  // Use gemini-1.5-flash for speed and cost-effectiveness (free tier)
+  static const String _modelName = 'gemini-1.5-flash';
+
+  Future<String> _getApiKey() async {
+    final prefs = await SharedPreferences.getInstance();
+    final key = prefs.getString(_apiKeyKey);
+    if (key == null || key.isEmpty) {
+      throw NoKeyException();
+    }
+    return key;
+  }
+
+  Future<List<String>> generateTags(String noteContent) async {
+    try {
+      final apiKey = await _getApiKey();
+      final model = GenerativeModel(model: _modelName, apiKey: apiKey);
+      final prompt =
+          'Analyze this note: "$noteContent". Return a list of 3-5 relevant hashtags in JSON format. Example: ["#work", "#urgent"]. Return ONLY the JSON array.';
+      final content = [Content.text(prompt)];
+      final response = await model.generateContent(content);
+
+      if (response.text != null) {
+        final cleanedText = response.text!
+            .replaceAll('```json', '')
+            .replaceAll('```', '')
+            .trim();
+        final List<dynamic> tags = jsonDecode(cleanedText);
+        return tags.map((e) => e.toString()).toList();
+      }
+    } on NoKeyException {
+      rethrow;
+    } catch (e) {
+      // Fail silently for tags
+    }
+    return [];
+  }
+
+  Future<String> chatWithNotes(String userQuestion, List<Note> allNotes) async {
+    final apiKey = await _getApiKey(); // Will throw if missing
+
+    try {
+      final model = GenerativeModel(model: _modelName, apiKey: apiKey);
+
+      final StringBuffer contextBuffer = StringBuffer();
+      contextBuffer.writeln(
+          "System: You are a helpful second brain. Here is my entire knowledge base:");
+
+      for (var note in allNotes) {
+        contextBuffer.writeln("---");
+        contextBuffer.writeln("Note ID: ${note.id}");
+        contextBuffer.writeln("Title: ${note.title}");
+        final content = note.blocks.map((b) => b.content).join('\n');
+        contextBuffer.writeln("Content: $content");
+        contextBuffer.writeln("---");
+      }
+
+      contextBuffer.writeln("User Question: '$userQuestion'");
+      contextBuffer.writeln(
+          "Answer strictly based on the notes provided. Cite the Note ID in your answer using format [Note ID]. If the answer is not in the notes, state that you don't know.");
+
+      final content = [Content.text(contextBuffer.toString())];
+      final response = await model.generateContent(content);
+
+      return response.text ?? "I couldn't generate a response.";
+    } catch (e) {
+      if (e is NoKeyException) rethrow; // Should be caught by _getApiKey anyway
+      return "Error communicating with AI: $e";
+    }
+  }
+
+  Future<Map<String, dynamic>> classifyThought(String text) async {
+    try {
+      final apiKey = await _getApiKey();
+      final model = GenerativeModel(model: _modelName, apiKey: apiKey);
+      final prompt =
+          'Analyze this text: "$text". Is it a "task" (something to do) or a "note" (an idea/info)? Return JSON ONLY: {"type": "task" or "note", "content": "cleaned text (fix grammar/formatting)"}';
+      final content = [Content.text(prompt)];
+      final response = await model.generateContent(content);
+
+      if (response.text != null) {
+        final cleanedText = response.text!
+            .replaceAll('```json', '')
+            .replaceAll('```', '')
+            .trim();
+        return jsonDecode(cleanedText);
+      }
+    } catch (e) {
+      // Return default if error or no key
+    }
+    return {'type': 'note', 'content': text};
+  }
+}
+
+final aiServiceProvider = Provider<AIService>((ref) => AIService());
