@@ -137,7 +137,7 @@ class SettingsScreen extends StatelessWidget {
                       color: Colors.white.withValues(alpha: 0.3), size: 32),
                   const SizedBox(height: 12),
                   Text(
-                    'FluxNotes for iOS',
+                    'FluxNotes',
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,

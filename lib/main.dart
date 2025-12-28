@@ -30,7 +30,7 @@ void main() async {
       await Isar.open(
         [NoteSchema],
         directory: dir.path,
-        inspector: true,
+        inspector: false,
       );
     }
   } catch (e) {
