@@ -20,12 +20,29 @@ tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
 
-// FORCE FIX: Assign a namespace to old libraries (like Isar) immediately when they load
 subprojects {
-    plugins.withId("com.android.library") {
-        val android = extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)
-        if (android != null && android.namespace == null) {
-            android.namespace = project.group.toString()
+    // Define the fixing logic in one place
+    val fixAndroid = {
+        val android = project.extensions.findByType(com.android.build.gradle.LibraryExtension::class.java)
+        if (android != null) {
+            // FORCE the SDK version to 36 to fix the lStar error
+            android.compileSdk = 36
+            
+            // Fix the Namespace error if it exists
+            if (android.namespace == null) {
+                android.namespace = project.group.toString()
+            }
+        }
+    }
+
+    // "Time Travel" Check:
+    // If the project is already done, fix it NOW.
+    // If it's still loading, wait until it's done (afterEvaluate).
+    if (project.state.executed) {
+        fixAndroid()
+    } else {
+        project.afterEvaluate {
+            fixAndroid()
         }
     }
 }
