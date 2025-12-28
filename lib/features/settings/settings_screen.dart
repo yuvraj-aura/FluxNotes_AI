@@ -44,45 +44,45 @@ class SettingsScreen extends StatelessWidget {
               ),
               child: Column(
                 children: [
-                  SettingsTile(
-                    icon: Icons.person,
-                    title: 'Account',
-                    subtitle: 'Manage subscription & profile',
-                    iconColor: const Color(0xFF3B82F6),
-                    iconBackground:
-                        const Color(0xFF1E3A8A).withValues(alpha: 0.3),
-                    onTap: () {},
-                  ),
-                  Divider(
-                      height: 1,
-                      color: Colors.white.withValues(alpha: 0.05),
-                      indent: 70),
-                  SettingsTile(
-                    icon: Icons.notifications,
-                    title: 'Notifications',
-                    subtitle: 'Reminders & updates',
-                    iconColor: const Color(0xFFF59E0B),
-                    iconBackground:
-                        const Color(0xFF78350F).withValues(alpha: 0.3),
-                    onTap: () {},
-                  ),
-                  Divider(
-                      height: 1,
-                      color: Colors.white.withValues(alpha: 0.05),
-                      indent: 70),
-                  SettingsTile(
-                    icon: Icons.lock,
-                    title: 'Security',
-                    subtitle: 'FaceID & Passcode',
-                    iconColor: const Color(0xFF10B981),
-                    iconBackground:
-                        const Color(0xFF064E3B).withValues(alpha: 0.3),
-                    onTap: () {},
-                  ),
-                  Divider(
-                      height: 1,
-                      color: Colors.white.withValues(alpha: 0.05),
-                      indent: 70),
+                  // SettingsTile(
+                  //   icon: Icons.person,
+                  //   title: 'Account',
+                  //   subtitle: 'Manage subscription & profile',
+                  //   iconColor: const Color(0xFF3B82F6),
+                  //   iconBackground:
+                  //       const Color(0xFF1E3A8A).withValues(alpha: 0.3),
+                  //   onTap: () {},
+                  // ),
+                  // Divider(
+                  //     height: 1,
+                  //     color: Colors.white.withValues(alpha: 0.05),
+                  //     indent: 70),
+                  // SettingsTile(
+                  //   icon: Icons.notifications,
+                  //   title: 'Notifications',
+                  //   subtitle: 'Reminders & updates',
+                  //   iconColor: const Color(0xFFF59E0B),
+                  //   iconBackground:
+                  //       const Color(0xFF78350F).withValues(alpha: 0.3),
+                  //   onTap: () {},
+                  // ),
+                  // Divider(
+                  //     height: 1,
+                  //     color: Colors.white.withValues(alpha: 0.05),
+                  //     indent: 70),
+                  // SettingsTile(
+                  //   icon: Icons.lock,
+                  //   title: 'Security',
+                  //   subtitle: 'FaceID & Passcode',
+                  //   iconColor: const Color(0xFF10B981),
+                  //   iconBackground:
+                  //       const Color(0xFF064E3B).withValues(alpha: 0.3),
+                  //   onTap: () {},
+                  // ),
+                  // Divider(
+                  //     height: 1,
+                  //     color: Colors.white.withValues(alpha: 0.05),
+                  //     indent: 70),
                   SettingsTile(
                     icon: Icons.psychology,
                     title: 'Brain Connection',

@@ -29,7 +29,7 @@ class NoteRepository {
       return await Isar.open(
         [NoteSchema],
         directory: dir.path,
-        inspector: true,
+        inspector: false,
       );
     }
     return Future.value(Isar.getInstance());

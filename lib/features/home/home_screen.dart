@@ -115,16 +115,6 @@ class HomeView extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'THURSDAY, NOV 2', // Ideally dynamic
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppTheme.primaryBlue,
-                        letterSpacing: 1.0,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
                       'FluxNotes',
                       style: AppTheme.darkTheme.appBarTheme.titleTextStyle,
                     ),
