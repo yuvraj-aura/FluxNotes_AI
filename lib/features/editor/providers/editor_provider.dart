@@ -11,12 +11,27 @@ class NoteEditorNotifier extends StateNotifier<AsyncValue<Note>> {
   Future<void> loadNote(int id) async {
     state = const AsyncLoading();
     try {
-      final notes = await _noteRepository.getAllNotes().first;
-      final note = notes.firstWhere((note) => note.id == id);
-      state = AsyncData(note);
+      final note = await _noteRepository.getNote(id);
+      if (note != null) {
+        state = AsyncData(note);
+      } else {
+        state = AsyncError('Note not found', StackTrace.current);
+      }
     } catch (e, s) {
       state = AsyncError(e, s);
     }
+  }
+
+  void updateBlockType(String blockId, BlockType newType) {
+    state.whenData((note) {
+      final blockIndex = note.blocks.indexWhere((b) => b.id == blockId);
+      if (blockIndex != -1) {
+        final updatedBlocks = List<ContentBlock>.from(note.blocks);
+        updatedBlocks[blockIndex].type = newType;
+        note.blocks = updatedBlocks;
+        state = AsyncData(note);
+      }
+    });
   }
 
   void updateBlockText(String blockId, String newText) {
@@ -64,6 +79,18 @@ class NoteEditorNotifier extends StateNotifier<AsyncValue<Note>> {
         ..removeWhere((b) => b.id == blockId);
       note.blocks = updatedBlocks;
       state = AsyncData(note);
+    });
+  }
+
+  void updateBlockMetadata(String blockId, String? metadata) {
+    state.whenData((note) {
+      final blockIndex = note.blocks.indexWhere((b) => b.id == blockId);
+      if (blockIndex != -1) {
+        final updatedBlocks = List<ContentBlock>.from(note.blocks);
+        updatedBlocks[blockIndex].metadata = metadata;
+        note.blocks = updatedBlocks;
+        state = AsyncData(note);
+      }
     });
   }
 

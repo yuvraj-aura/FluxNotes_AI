@@ -24,12 +24,22 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = const [
-    HomeView(),
-    SearchScreen(),
-    TagsScreen(),
-    SettingsScreen(),
-  ];
+  late final List<Widget> _screens;
+
+  @override
+  void initState() {
+    super.initState();
+    _screens = [
+      HomeView(onSearchTap: () {
+        setState(() {
+          _currentIndex = 1;
+        });
+      }),
+      const SearchScreen(),
+      const TagsScreen(),
+      const SettingsScreen(),
+    ];
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -94,7 +104,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class HomeView extends ConsumerWidget {
-  const HomeView({super.key});
+  final VoidCallback? onSearchTap;
+
+  const HomeView({super.key, this.onSearchTap});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -133,7 +145,10 @@ class HomeView extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             // Search Bar
-            const CustomSearchBar(),
+            GestureDetector(
+              onTap: onSearchTap,
+              child: const CustomSearchBar(),
+            ),
             const SizedBox(height: 24),
             // Notes List
             Expanded(

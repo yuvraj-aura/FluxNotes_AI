@@ -6,6 +6,8 @@ import 'package:flux_notes/data/models/note_model.dart';
 import 'package:flux_notes/data/repositories/note_repository.dart';
 import 'package:flux_notes/features/editor/providers/editor_provider.dart';
 import 'package:flux_notes/features/editor/widgets/block_widget.dart';
+import 'package:flux_notes/features/editor/widgets/editor_toolbar.dart';
+import 'package:flux_notes/theme/app_theme.dart';
 
 // Simple Debouncer
 class Debouncer {
@@ -60,6 +62,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         _titleFocusNode.requestFocus();
       });
     }
+
+    _titleFocusNode.addListener(() {
+      if (_titleFocusNode.hasFocus) {
+        setState(() {
+          _focusedBlockId = null; // Title focused
+        });
+      }
+    });
   }
 
   @override
@@ -116,32 +126,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     if (_titleController.text != note.title) {
       _titleController.text = note.title;
     }
-    // Simplified check: we assume title listener is added once or managed better.
-    // Since this runs in build, adding a listener every time is bad.
-    // However, existing logic checks private hasListeners.
-    // We can skip adding if we assume it persists, or properly manage it.
-    // Given the structure, let's just use the current text check and rely on the fact
-    // that listeners are long-lived with the controller.
-    // Ideally, move listener addition to initState or when key changes.
-    // For now, I'll remove the check as a quick fix if I move it to initState,
-    // but here I'll just rely on a flag I'll add or just accept it's added.
-    // Actually, let's use a flag. I need to add the flag to the class first.
-    // Since I can't add a flag easily in a replace chunk without context,
-    // I'll assume we can just add the listener if it's not already added?
-    // No, standard way is to remove and add, or just add once.
-    // Let's remove the listener first to be safe (idempotent).
-    // But I don't have reference to the EXACT closure function to remove it.
-    // So I define the listener as a method.
 
-    // For this specific error, I should just remove the check and fix the logic.
-    // But I can't easily change the structure in small chunks.
-    // I will rewrite _setupControllers to be safer.
-
-    // Actually, I'll just change the hasListener check to always add and assume
-    // we handle multiple listeners? No, that causes bugs.
-
-    // Best fix without refactoring: logic is flawed.
-    // I'll make the listener a method `_onTitleChanged` and remove/add it.
     _titleController.removeListener(_onTitleChanged);
     _titleController.addListener(_onTitleChanged);
 
@@ -232,6 +217,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
     final noteState = ref.watch(noteEditorProvider);
 
     return Scaffold(
+      backgroundColor: AppTheme.black,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.transparent,
@@ -259,6 +245,23 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
           ),
         ],
       ),
+      bottomNavigationBar: noteState.whenOrNull(
+        data: (note) {
+          if (_focusedBlockId == null) return null;
+          final focusedBlock =
+              note.blocks.where((b) => b.id == _focusedBlockId).firstOrNull;
+
+          if (focusedBlock == null) return null;
+
+          return Padding(
+            padding: MediaQuery.of(context).viewInsets, // Adjust for keyboard
+            child: EditorToolbar(
+              blockId: _focusedBlockId!,
+              block: focusedBlock,
+            ),
+          );
+        },
+      ),
       body: noteState.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, stack) => Center(child: Text('Error: $err')),
@@ -267,7 +270,8 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
           return ListView.builder(
             controller: _scrollController,
-            padding: const EdgeInsets.symmetric(horizontal: 16.0),
+            padding: const EdgeInsets.fromLTRB(
+                16.0, 0.0, 16.0, 100.0), // Padding for toolbar
             itemCount: note.blocks.length + 1, // +1 for the title
             itemBuilder: (context, index) {
               if (index == 0) {
@@ -279,12 +283,14 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     style: const TextStyle(
                       fontSize: 28,
                       fontWeight: FontWeight.bold,
+                      color: Colors.white,
                     ),
                     decoration: const InputDecoration.collapsed(
                       hintText: 'Title',
                       hintStyle: TextStyle(
                         fontSize: 28,
                         fontWeight: FontWeight.bold,
+                        color: Colors.grey,
                       ),
                     ),
                   ),
@@ -305,10 +311,16 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 child: BlockWidget(
                   controller: controller,
                   focusNode: focusNode,
+                  block: block, // Pass the full block
                   isFocused: _focusedBlockId == block.id,
                   onEnterPressed: () => _addNewBlock(block.id),
                   onBackspacePressed: () =>
                       _deleteBlockAndFocusPrevious(block.id),
+                  onTypeChanged: (newType) {
+                    ref
+                        .read(noteEditorProvider.notifier)
+                        .updateBlockType(block.id, newType);
+                  },
                 ),
               );
             },

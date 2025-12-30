@@ -54,8 +54,7 @@ class NotificationService {
         ),
         iOS: DarwinNotificationDetails(),
       ),
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
+
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
       matchDateTimeComponents: DateTimeComponents.time,
     );
@@ -71,3 +70,7 @@ class NotificationService {
     return scheduledDate;
   }
 }
+
+// line 58:59
+// androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+//       matchDateTimeComponents: DateTimeComponents.time,

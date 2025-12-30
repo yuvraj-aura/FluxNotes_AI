@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flux_notes/features/home/home_screen.dart';
@@ -23,13 +24,15 @@ void main() async {
 
   // 3. Initialize Database (Safe Mode)
   try {
-    final dir = await getApplicationDocumentsDirectory();
+    final dirPath =
+        kIsWeb ? '' : (await getApplicationDocumentsDirectory()).path;
 
     // Check if Isar is already open to prevent errors
-    if (Isar.instanceNames.isEmpty) {
+    // CRITICAL: Do NOT open Isar on Web in this version
+    if (!kIsWeb && Isar.instanceNames.isEmpty) {
       await Isar.open(
         [NoteSchema],
-        directory: dir.path,
+        directory: dirPath,
         inspector: false,
       );
     }

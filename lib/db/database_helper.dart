@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import '../models/note.dart';
@@ -15,10 +16,13 @@ class DatabaseHelper {
   }
 
   Future<Isar> _initDB() async {
-    final dir = await getApplicationDocumentsDirectory();
+    if (kIsWeb) {
+      throw UnsupportedError('Isar not supported on Web in this version');
+    }
+    final dirPath = (await getApplicationDocumentsDirectory()).path;
     final isar = await Isar.open(
       [NoteSchema],
-      directory: dir.path,
+      directory: dirPath,
     );
     return isar;
   }
