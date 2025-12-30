@@ -12,6 +12,8 @@ class Note {
   @Index(type: IndexType.value, caseSensitive: false)
   late String title;
 
+  String? titleMetadata;
+
   @Index()
   late DateTime createdAt;
 
@@ -47,7 +49,12 @@ class ContentBlock {
     this.content = '',
     this.isChecked = false,
     this.metadata,
+    this.textColor,
+    this.backgroundColor,
   });
+
+  String? textColor;
+  String? backgroundColor;
 }
 
 enum BlockType {

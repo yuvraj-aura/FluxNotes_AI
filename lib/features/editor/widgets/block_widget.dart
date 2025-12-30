@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+
 import 'package:flutter/services.dart';
 import 'package:flutter_link_previewer/flutter_link_previewer.dart';
 import 'package:flux_notes/data/models/note_model.dart';
@@ -13,6 +14,7 @@ class BlockWidget extends StatefulWidget {
   final VoidCallback onEnterPressed;
   final VoidCallback onBackspacePressed;
   final ValueChanged<BlockType> onTypeChanged;
+  final Function(String? textColor, String? backgroundColor) onStyleChanged;
   final bool isFocused;
 
   const BlockWidget({
@@ -23,6 +25,7 @@ class BlockWidget extends StatefulWidget {
     required this.onEnterPressed,
     required this.onBackspacePressed,
     required this.onTypeChanged,
+    required this.onStyleChanged,
     required this.isFocused,
   });
 
@@ -50,7 +53,7 @@ class _BlockWidgetState extends State<BlockWidget> {
             });
           }
           widget.onEnterPressed();
-          return KeyEventResult.handled; // Prevent newline in TextField
+          return KeyEventResult.handled;
         } else if (event.logicalKey == LogicalKeyboardKey.backspace &&
             widget.controller.text.isEmpty) {
           widget.onBackspacePressed();
@@ -60,10 +63,17 @@ class _BlockWidgetState extends State<BlockWidget> {
       return KeyEventResult.ignored;
     };
 
-    // Listen for text changes
     widget.controller.addListener(_onTextChanged);
-    // Initial check
     _onTextChanged();
+  }
+
+  @override
+  void didUpdateWidget(BlockWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.controller != oldWidget.controller) {
+      oldWidget.controller.removeListener(_onTextChanged);
+      widget.controller.addListener(_onTextChanged);
+    }
   }
 
   @override
@@ -78,9 +88,8 @@ class _BlockWidgetState extends State<BlockWidget> {
   }
 
   void _checkForSlashCommand() {
-    // Show menu if text is exactly "/"
     final text = widget.controller.text;
-    if (text == '/' && widget.isFocused) {
+    if (text.startsWith('/') && widget.isFocused) {
       if (!_showSlashMenu) {
         setState(() {
           _showSlashMenu = true;
@@ -98,232 +107,268 @@ class _BlockWidgetState extends State<BlockWidget> {
   void _checkForUrl() {
     final text = widget.controller.text;
     final match = _urlRegex.firstMatch(text);
-    final url = match?.group(0);
-
-    if (url != _detectedUrl) {
-      setState(() {
-        _detectedUrl = url;
-      });
+    if (match != null) {
+      final url = match.group(0);
+      if (url != _detectedUrl) {
+        setState(() {
+          _detectedUrl = url;
+        });
+      }
+    } else {
+      if (_detectedUrl != null) {
+        setState(() {
+          _detectedUrl = null;
+        });
+      }
     }
   }
 
   void _selectType(BlockType type) {
-    widget.controller.clear(); // Remove the slash
     widget.onTypeChanged(type);
     setState(() {
       _showSlashMenu = false;
     });
-    // Request focus again just in case
+    widget.controller.clear();
+    widget.focusNode.requestFocus();
+  }
+
+  void _applyColor(String color, {bool isBackground = false}) {
+    widget.onStyleChanged(
+      isBackground ? null : color,
+      isBackground ? color : null,
+    );
+    setState(() {
+      _showSlashMenu = false;
+    });
+    widget.controller.clear();
     widget.focusNode.requestFocus();
   }
 
   TextStyle _getTextStyle() {
-    TextStyle baseStyle;
+    double fontSize = 16;
+    FontWeight fontWeight = FontWeight.normal;
+    Color color = Colors.white;
+    FontStyle fontStyle = FontStyle.normal;
+    List<TextDecoration> decorations = [];
+
+    // Parse metadata
+    try {
+      if (widget.block.metadata != null && widget.block.metadata!.isNotEmpty) {
+        final meta = jsonDecode(widget.block.metadata!);
+        if (meta['bold'] == true) fontWeight = FontWeight.bold;
+        if (meta['italic'] == true) fontStyle = FontStyle.italic;
+        if (meta['underline'] == true)
+          decorations.add(TextDecoration.underline);
+      }
+    } catch (_) {}
+
+    if (widget.block.textColor != null) {
+      try {
+        color = Color(int.parse(widget.block.textColor!));
+      } catch (_) {}
+    }
 
     switch (widget.block.type) {
       case BlockType.heading1:
-        baseStyle = GoogleFonts.inter(
-          fontSize: 24,
-          fontWeight: FontWeight.bold,
-          color: Colors.white,
-        );
+        fontSize = 24;
+        if (fontWeight != FontWeight.bold) fontWeight = FontWeight.bold;
         break;
       case BlockType.heading2:
-        baseStyle = GoogleFonts.inter(
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          color: Colors.white,
-        );
+        fontSize = 20;
+        if (fontWeight != FontWeight.bold) fontWeight = FontWeight.w600;
         break;
-      case BlockType.bullet:
-        baseStyle = GoogleFonts.inter(fontSize: 16, color: Colors.white);
-        break;
-      case BlockType.paragraph:
       default:
-        baseStyle = GoogleFonts.inter(fontSize: 16, color: Colors.white);
+        fontSize = 16;
         break;
     }
 
-    // Apply metadata styles
-    if (widget.block.metadata != null && widget.block.metadata!.isNotEmpty) {
-      try {
-        final meta = jsonDecode(widget.block.metadata!) as Map<String, dynamic>;
-
-        if (meta['bold'] == true) {
-          baseStyle = baseStyle.copyWith(fontWeight: FontWeight.bold);
-        }
-        if (meta['italic'] == true) {
-          baseStyle = baseStyle.copyWith(fontStyle: FontStyle.italic);
-        }
-        if (meta['underline'] == true) {
-          baseStyle = baseStyle.copyWith(decoration: TextDecoration.underline);
-        }
-        if (meta['color'] != null) {
-          baseStyle = baseStyle.copyWith(color: Color(meta['color'] as int));
-        }
-        if (meta['backgroundColor'] != null) {
-          baseStyle = baseStyle.copyWith(
-              backgroundColor: Color(meta['backgroundColor'] as int));
-        }
-      } catch (e) {
-        // Ignore parsing errors
-      }
+    if (widget.block.type == BlockType.todo && widget.block.isChecked == true) {
+      decorations.add(TextDecoration.lineThrough);
     }
 
-    return baseStyle;
+    return GoogleFonts.inter(
+      fontSize: fontSize,
+      fontWeight: fontWeight,
+      fontStyle: fontStyle,
+      color: color,
+      decoration:
+          decorations.isNotEmpty ? TextDecoration.combine(decorations) : null,
+      decorationColor: color,
+    );
   }
 
-  void _showOptionsSheet() {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.cardDark,
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.title, color: Colors.white),
-                title: const Text('Heading 1',
-                    style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(context);
-                  widget.onTypeChanged(BlockType.heading1);
-                },
-              ),
-              ListTile(
-                leading: const Icon(Icons.text_fields, color: Colors.white),
-                title:
-                    const Text('Text', style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(context);
-                  widget.onTypeChanged(BlockType.paragraph);
-                },
-              ),
-              ListTile(
-                leading:
-                    const Icon(Icons.format_list_bulleted, color: Colors.white),
-                title: const Text('Bullet List',
-                    style: TextStyle(color: Colors.white)),
-                onTap: () {
-                  Navigator.pop(context);
-                  widget.onTypeChanged(BlockType.bullet);
-                },
-              ),
-              // Add more as needed
-            ],
-          ),
-        );
-      },
-    );
+  Color? _getBackgroundColor() {
+    if (widget.block.backgroundColor != null) {
+      try {
+        return Color(int.parse(widget.block.backgroundColor!));
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  List<SlashMenuItem> _getFilteredMenuItems() {
+    final text = widget.controller.text;
+    if (!text.startsWith('/')) return [];
+
+    final query = text.substring(1).toLowerCase();
+
+    final allItems = [
+      SlashMenuItem(
+        icon: Icons.title,
+        label: 'Heading 1',
+        type: BlockType.heading1,
+      ),
+      SlashMenuItem(
+        icon: Icons.title,
+        label: 'Heading 2',
+        type: BlockType.heading2,
+      ),
+      SlashMenuItem(
+        icon: Icons.text_fields,
+        label: 'Text',
+        type: BlockType.paragraph,
+      ),
+      SlashMenuItem(
+        icon: Icons.format_list_bulleted,
+        label: 'Bullet List',
+        type: BlockType.bullet,
+        keywords: ['list', 'ul'], // explicit keywords
+      ),
+      // Colors
+      SlashMenuItem(
+          icon: Icons.format_paint, label: 'Red', color: '0xFFFF5252'),
+      SlashMenuItem(
+          icon: Icons.format_paint, label: 'Orange', color: '0xFFFFAB40'),
+      SlashMenuItem(
+          icon: Icons.format_paint, label: 'Yellow', color: '0xFFFFD740'),
+      SlashMenuItem(
+          icon: Icons.format_paint, label: 'Green', color: '0xFF69F0AE'),
+      SlashMenuItem(
+          icon: Icons.format_paint, label: 'Blue', color: '0xFF448AFF'),
+      SlashMenuItem(
+          icon: Icons.format_paint, label: 'Purple', color: '0xFFE040FB'),
+      SlashMenuItem(
+          icon: Icons.highlight,
+          label: 'Highlight',
+          color: '0xFF3E2723',
+          isBackground: true),
+    ];
+
+    if (query.isEmpty) return allItems;
+
+    return allItems.where((item) {
+      if (item.label.toLowerCase().contains(query)) return true;
+      if (item.keywords != null) {
+        return item.keywords!.any((k) => k.startsWith(query));
+      }
+      return false;
+    }).toList();
   }
 
   @override
   Widget build(BuildContext context) {
+    final menuItems = _getFilteredMenuItems();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Drag handle or Bullet
-            if (widget.block.type == BlockType.bullet)
-              Padding(
-                padding: const EdgeInsets.only(
-                    top: 8.0, right: 8.0, left: 4.0), // Adjust for bullet align
-                child: GestureDetector(
-                  onTap: _showOptionsSheet, // Allow tapping bullet too
+        Container(
+          decoration: BoxDecoration(
+            color: _getBackgroundColor(),
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Drag handle logic...
+              if (widget.block.type == BlockType.bullet)
+                Padding(
+                  padding:
+                      const EdgeInsets.only(top: 8.0, right: 8.0, left: 4.0),
                   child: const Icon(Icons.circle, size: 6, color: Colors.white),
-                ),
-              )
-            else
-              AnimatedOpacity(
-                duration: const Duration(milliseconds: 150),
-                opacity: widget.isFocused ? 1.0 : 0.0,
-                child: Padding(
-                  padding: const EdgeInsets.only(top: 0.0, right: 4.0),
-                  child: IconButton(
-                    icon: Icon(
+                )
+              else
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: widget.isFocused ? 1.0 : 0.0,
+                  child: Padding(
+                    padding: const EdgeInsets.only(top: 4.0, right: 8.0),
+                    child: Icon(
                       Icons.drag_indicator,
                       color: Theme.of(context)
                           .textTheme
                           .bodySmall
                           ?.color
-                          ?.withValues(alpha: 0.4),
+                          ?.withOpacity(0.4),
                       size: 20,
                     ),
-                    onPressed: _showOptionsSheet, // Explicit options button
-                    constraints: const BoxConstraints(),
-                    padding: const EdgeInsets.all(4),
+                  ),
+                ),
+
+              Expanded(
+                child: TextField(
+                  controller: widget.controller,
+                  focusNode: widget.focusNode,
+                  maxLines: null,
+                  keyboardType: TextInputType.multiline,
+                  style: _getTextStyle(),
+                  decoration: InputDecoration.collapsed(
+                    hintText: widget.block.type == BlockType.heading1
+                        ? 'Heading 1'
+                        : 'Type "/" for commands',
+                    hintStyle: _getTextStyle()
+                        .copyWith(color: Colors.grey.withOpacity(0.5)),
                   ),
                 ),
               ),
-
-            Expanded(
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  TextField(
-                    controller: widget.controller,
-                    focusNode: widget.focusNode,
-                    maxLines: null,
-                    keyboardType: TextInputType.multiline,
-                    style: _getTextStyle(),
-                    decoration: InputDecoration.collapsed(
-                      hintText: widget.block.type == BlockType.heading1
-                          ? 'Heading 1'
-                          : 'Type something... ("/" for commands)',
-                      hintStyle: _getTextStyle()
-                          .copyWith(color: Colors.grey.withValues(alpha: 0.5)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
 
         // Slash Command Menu
-        if (_showSlashMenu)
+        if (_showSlashMenu && menuItems.isNotEmpty)
           Container(
             margin: const EdgeInsets.only(top: 8, left: 32),
-            width: 200,
+            width: 250,
+            constraints:
+                const BoxConstraints(maxHeight: 250), // prevent too tall
             decoration: BoxDecoration(
               color: AppTheme.cardDark,
               borderRadius: BorderRadius.circular(8),
               border: Border.all(color: Colors.white12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.5),
+                  color: Colors.black.withOpacity(0.5),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
               ],
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildMenuItem(
-                  icon: Icons.title,
-                  label: 'Heading 1',
-                  onTap: () => _selectType(BlockType.heading1),
-                ),
-                _buildMenuItem(
-                  icon: Icons.text_fields,
-                  label: 'Text',
-                  onTap: () => _selectType(BlockType.paragraph),
-                ),
-                _buildMenuItem(
-                  icon: Icons.format_list_bulleted,
-                  label: 'Bullet List',
-                  onTap: () => _selectType(BlockType.bullet),
-                ),
-              ],
+            child: ListView.separated(
+              shrinkWrap: true,
+              padding: EdgeInsets.zero,
+              itemCount: menuItems.length,
+              separatorBuilder: (context, index) =>
+                  const Divider(height: 1, color: Colors.white10),
+              itemBuilder: (context, index) {
+                final item = menuItems[index];
+                return _buildMenuItem(
+                  icon: item.icon,
+                  label: item.label,
+                  onTap: () {
+                    if (item.type != null) {
+                      _selectType(item.type!);
+                    } else if (item.color != null) {
+                      _applyColor(item.color!, isBackground: item.isBackground);
+                    }
+                  },
+                );
+              },
             ),
           ),
 
-        if (_detectedUrl != null)
+        if (false && _detectedUrl != null)
+          // ... (Url preview existing logic)
           Padding(
             padding: const EdgeInsets.only(top: 8.0, left: 32.0),
             child: ClipRRect(
@@ -337,8 +382,7 @@ class _BlockWidgetState extends State<BlockWidget> {
                 child: LinkPreview(
                   enableAnimation: true,
                   onPreviewDataFetched: (data) {},
-                  previewData:
-                      null, // We handle data internally by the widget for now
+                  previewData: null,
                   text: _detectedUrl!,
                   width: MediaQuery.of(context).size.width,
                 ),
@@ -375,4 +419,22 @@ class _BlockWidgetState extends State<BlockWidget> {
       ),
     );
   }
+}
+
+class SlashMenuItem {
+  final IconData icon;
+  final String label;
+  final BlockType? type;
+  final String? color;
+  final bool isBackground;
+  final List<String>? keywords;
+
+  SlashMenuItem({
+    required this.icon,
+    required this.label,
+    this.type,
+    this.color,
+    this.isBackground = false,
+    this.keywords,
+  });
 }

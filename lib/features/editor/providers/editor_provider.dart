@@ -58,6 +58,24 @@ class NoteEditorNotifier extends StateNotifier<AsyncValue<Note>> {
     });
   }
 
+  void updateBlockStyle(String blockId,
+      {String? textColor, String? backgroundColor}) {
+    state.whenData((note) {
+      final blockIndex = note.blocks.indexWhere((b) => b.id == blockId);
+      if (blockIndex != -1) {
+        final updatedBlocks = List<ContentBlock>.from(note.blocks);
+        if (textColor != null) {
+          updatedBlocks[blockIndex].textColor = textColor;
+        }
+        if (backgroundColor != null) {
+          updatedBlocks[blockIndex].backgroundColor = backgroundColor;
+        }
+        note.blocks = updatedBlocks;
+        state = AsyncData(note);
+      }
+    });
+  }
+
   void addBlock(int index, BlockType type) {
     state.whenData((note) {
       final newBlock = ContentBlock()

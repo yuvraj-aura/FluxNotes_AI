@@ -110,6 +110,15 @@ class MockNoteRepository extends _i1.Mock implements _i4.NoteRepository {
       ) as _i5.Future<void>);
 
   @override
+  _i5.Future<_i3.Note?> getNote(int? id) => (super.noSuchMethod(
+        Invocation.method(
+          #getNote,
+          [id],
+        ),
+        returnValue: _i5.Future<_i3.Note?>.value(),
+      ) as _i5.Future<_i3.Note?>);
+
+  @override
   _i5.Stream<List<_i3.Note>> getAllNotes() => (super.noSuchMethod(
         Invocation.method(
           #getAllNotes,
@@ -123,6 +132,16 @@ class MockNoteRepository extends _i1.Mock implements _i4.NoteRepository {
         Invocation.method(
           #deleteNote,
           [id],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> checkAndSeedDemoNote() => (super.noSuchMethod(
+        Invocation.method(
+          #checkAndSeedDemoNote,
+          [],
         ),
         returnValue: _i5.Future<void>.value(),
         returnValueForMissingStub: _i5.Future<void>.value(),

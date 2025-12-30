@@ -5,14 +5,18 @@ import 'package:flux_notes/data/models/note_model.dart';
 import 'package:flux_notes/features/editor/providers/editor_provider.dart';
 import 'package:flux_notes/theme/app_theme.dart';
 
+import 'package:flux_notes/features/editor/controllers/rich_text_controller.dart';
+
 class EditorToolbar extends ConsumerWidget {
   final String blockId;
   final ContentBlock block;
+  final RichTextController? controller;
 
   const EditorToolbar({
     super.key,
     required this.blockId,
     required this.block,
+    this.controller,
   });
 
   Map<String, dynamic> _getMetadata() {
@@ -25,10 +29,17 @@ class EditorToolbar extends ConsumerWidget {
   }
 
   void _updateMetadata(WidgetRef ref, Map<String, dynamic> changes) {
+    if (controller != null) {
+      // If controller exists, rely on it to update internal spans and sync later.
+      // Actually, controller updates UI. We need to persist changes.
+      // Controller.metadata getter returns the JSON span string.
+      // We should update the block's metadata with controller's metadata.
+      // But here we are toggling style.
+      return;
+    }
+
     final currentMeta = _getMetadata();
     final newMeta = {...currentMeta, ...changes};
-
-    // Remove keys with null values to clean up
     newMeta.removeWhere((key, value) => value == null);
 
     ref.read(noteEditorProvider.notifier).updateBlockMetadata(
@@ -38,21 +49,76 @@ class EditorToolbar extends ConsumerWidget {
   }
 
   void _toggleStyle(WidgetRef ref, String key, bool currentValue) {
-    _updateMetadata(ref, {key: !currentValue});
+    if (controller != null) {
+      controller!.toggleStyle(key, !currentValue);
+      // Trigger save of metadata
+      ref.read(noteEditorProvider.notifier).updateBlockMetadata(
+            blockId,
+            controller!.metadata,
+          );
+    } else {
+      _updateMetadata(ref, {key: !currentValue});
+    }
   }
 
-  void _setColor(WidgetRef ref, String key, int? colorValue) {
-    _updateMetadata(ref, {key: colorValue});
+  void _setTextColor(WidgetRef ref, int? colorValue) {
+    if (controller != null) {
+      controller!.setColor('color', colorValue);
+      ref.read(noteEditorProvider.notifier).updateBlockMetadata(
+            blockId,
+            controller!.metadata,
+          );
+    } else {
+      ref.read(noteEditorProvider.notifier).updateBlockStyle(
+            blockId,
+            textColor: colorValue?.toString(),
+          );
+    }
+  }
+
+  void _setBackgroundColor(WidgetRef ref, int? colorValue) {
+    if (controller != null) {
+      controller!.setColor('backgroundColor', colorValue);
+      ref.read(noteEditorProvider.notifier).updateBlockMetadata(
+            blockId,
+            controller!.metadata,
+          );
+    } else {
+      ref.read(noteEditorProvider.notifier).updateBlockStyle(
+            blockId,
+            backgroundColor: colorValue?.toString(),
+          );
+    }
   }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final meta = _getMetadata();
-    final isBold = meta['bold'] == true;
-    final isItalic = meta['italic'] == true;
-    final isUnderline = meta['underline'] == true;
-    final currentColor = meta['color'] as int?;
-    final currentBgColor = meta['backgroundColor'] as int?;
+    bool isBold = false;
+    bool isItalic = false;
+    bool isUnderline = false;
+    int? currentColor;
+    int? currentBgColor;
+
+    if (controller != null) {
+      isBold = controller!.isSelectionBold;
+      isItalic = controller!.isSelectionItalic;
+      isUnderline = controller!.isSelectionUnderline;
+      currentColor = controller!.selectionColor;
+      currentBgColor = controller!.selectionBackgroundColor;
+    } else {
+      final meta = _getMetadata();
+      isBold = meta['bold'] == true;
+      isItalic = meta['italic'] == true;
+      isUnderline = meta['underline'] == true;
+
+      // Also check block properties for colors if using old model
+      currentColor = block.textColor != null
+          ? int.tryParse(block.textColor!)
+          : (meta['color'] as int?);
+      currentBgColor = block.backgroundColor != null
+          ? int.tryParse(block.backgroundColor!)
+          : (meta['backgroundColor'] as int?);
+    }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -102,8 +168,7 @@ class EditorToolbar extends ConsumerWidget {
                 icon: Icons.format_color_text,
                 color:
                     currentColor != null ? Color(currentColor) : Colors.white,
-                onColorSelected: (color) =>
-                    _setColor(ref, 'color', color?.value),
+                onColorSelected: (color) => _setTextColor(ref, color?.value),
               ),
               const SizedBox(width: 8),
               _ColorButton(
@@ -113,7 +178,7 @@ class EditorToolbar extends ConsumerWidget {
                     : Colors.transparent,
                 isBackground: true,
                 onColorSelected: (color) =>
-                    _setColor(ref, 'backgroundColor', color?.value),
+                    _setBackgroundColor(ref, color?.value),
               ),
             ],
           ),
@@ -248,13 +313,21 @@ class _ColorButton extends StatelessWidget {
                 _ColorOption(
                     color: Colors.redAccent, onSelect: onColorSelected),
                 _ColorOption(
-                    color: Colors.blueAccent, onSelect: onColorSelected),
+                    color: Colors.orangeAccent, onSelect: onColorSelected),
+                _ColorOption(
+                    color: Colors.amberAccent,
+                    onSelect: onColorSelected), // Yellow-ish
                 _ColorOption(
                     color: Colors.greenAccent, onSelect: onColorSelected),
                 _ColorOption(
-                    color: Colors.amberAccent, onSelect: onColorSelected),
+                    color: Colors.lightBlueAccent,
+                    onSelect: onColorSelected), // Cyan/Light Blue
+                _ColorOption(
+                    color: Colors.blueAccent, onSelect: onColorSelected),
                 _ColorOption(
                     color: Colors.purpleAccent, onSelect: onColorSelected),
+                _ColorOption(
+                    color: Colors.pinkAccent, onSelect: onColorSelected),
                 if (isBackground)
                   _ColorOption(
                       color: Colors.grey[800]!, onSelect: onColorSelected),

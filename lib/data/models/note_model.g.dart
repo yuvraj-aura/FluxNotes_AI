@@ -15,7 +15,7 @@ extension GetNoteCollection on Isar {
 
 const NoteSchema = CollectionSchema(
   name: r'Note',
-  id: 1111111111111,
+  id: 6284318083599466496,
   properties: {
     r'blocks': PropertySchema(
       id: 0,
@@ -48,13 +48,18 @@ const NoteSchema = CollectionSchema(
       name: r'title',
       type: IsarType.string,
     ),
-    r'updatedAt': PropertySchema(
+    r'titleMetadata': PropertySchema(
       id: 6,
+      name: r'titleMetadata',
+      type: IsarType.string,
+    ),
+    r'updatedAt': PropertySchema(
+      id: 7,
       name: r'updatedAt',
       type: IsarType.dateTime,
     ),
     r'uuid': PropertySchema(
-      id: 7,
+      id: 8,
       name: r'uuid',
       type: IsarType.string,
     )
@@ -66,7 +71,7 @@ const NoteSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: 1111111111112,
+      id: 2134397340427725056,
       name: r'uuid',
       unique: true,
       replace: true,
@@ -79,7 +84,7 @@ const NoteSchema = CollectionSchema(
       ],
     ),
     r'title': IndexSchema(
-      id: 1111111111113,
+      id: -7636685945352118272,
       name: r'title',
       unique: false,
       replace: false,
@@ -92,7 +97,7 @@ const NoteSchema = CollectionSchema(
       ],
     ),
     r'createdAt': IndexSchema(
-      id: 1111111111114,
+      id: -3433535483987302400,
       name: r'createdAt',
       unique: false,
       replace: false,
@@ -105,7 +110,7 @@ const NoteSchema = CollectionSchema(
       ],
     ),
     r'updatedAt': IndexSchema(
-      id: 1111111111115,
+      id: -6238191080293565440,
       name: r'updatedAt',
       unique: false,
       replace: false,
@@ -118,7 +123,7 @@ const NoteSchema = CollectionSchema(
       ],
     ),
     r'tags': IndexSchema(
-      id: 1111111111116,
+      id: 4029205728550669312,
       name: r'tags',
       unique: false,
       replace: false,
@@ -167,6 +172,12 @@ int _noteEstimateSize(
     }
   }
   bytesCount += 3 + object.title.length * 3;
+  {
+    final value = object.titleMetadata;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.uuid.length * 3;
   return bytesCount;
 }
@@ -188,8 +199,9 @@ void _noteSerialize(
   writer.writeString(offsets[3], object.summary);
   writer.writeStringList(offsets[4], object.tags);
   writer.writeString(offsets[5], object.title);
-  writer.writeDateTime(offsets[6], object.updatedAt);
-  writer.writeString(offsets[7], object.uuid);
+  writer.writeString(offsets[6], object.titleMetadata);
+  writer.writeDateTime(offsets[7], object.updatedAt);
+  writer.writeString(offsets[8], object.uuid);
 }
 
 Note _noteDeserialize(
@@ -212,8 +224,9 @@ Note _noteDeserialize(
   object.summary = reader.readStringOrNull(offsets[3]);
   object.tags = reader.readStringList(offsets[4]) ?? [];
   object.title = reader.readString(offsets[5]);
-  object.updatedAt = reader.readDateTime(offsets[6]);
-  object.uuid = reader.readString(offsets[7]);
+  object.titleMetadata = reader.readStringOrNull(offsets[6]);
+  object.updatedAt = reader.readDateTime(offsets[7]);
+  object.uuid = reader.readString(offsets[8]);
   return object;
 }
 
@@ -243,8 +256,10 @@ P _noteDeserializeProp<P>(
     case 5:
       return (reader.readString(offset)) as P;
     case 6:
-      return (reader.readDateTime(offset)) as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 7:
+      return (reader.readDateTime(offset)) as P;
+    case 8:
       return (reader.readString(offset)) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
@@ -1502,6 +1517,152 @@ extension NoteQueryFilter on QueryBuilder<Note, Note, QFilterCondition> {
     });
   }
 
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'titleMetadata',
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'titleMetadata',
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'titleMetadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'titleMetadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'titleMetadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'titleMetadata',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'titleMetadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'titleMetadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataContains(
+      String value,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'titleMetadata',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataMatches(
+      String pattern,
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'titleMetadata',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'titleMetadata',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterFilterCondition> titleMetadataIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'titleMetadata',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<Note, Note, QAfterFilterCondition> updatedAtEqualTo(
       DateTime value) {
     return QueryBuilder.apply(this, (query) {
@@ -1744,6 +1905,18 @@ extension NoteQuerySortBy on QueryBuilder<Note, Note, QSortBy> {
     });
   }
 
+  QueryBuilder<Note, Note, QAfterSortBy> sortByTitleMetadata() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'titleMetadata', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterSortBy> sortByTitleMetadataDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'titleMetadata', Sort.desc);
+    });
+  }
+
   QueryBuilder<Note, Note, QAfterSortBy> sortByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -1830,6 +2003,18 @@ extension NoteQuerySortThenBy on QueryBuilder<Note, Note, QSortThenBy> {
     });
   }
 
+  QueryBuilder<Note, Note, QAfterSortBy> thenByTitleMetadata() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'titleMetadata', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Note, Note, QAfterSortBy> thenByTitleMetadataDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'titleMetadata', Sort.desc);
+    });
+  }
+
   QueryBuilder<Note, Note, QAfterSortBy> thenByUpdatedAt() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'updatedAt', Sort.asc);
@@ -1885,6 +2070,14 @@ extension NoteQueryWhereDistinct on QueryBuilder<Note, Note, QDistinct> {
       {bool caseSensitive = true}) {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'title', caseSensitive: caseSensitive);
+    });
+  }
+
+  QueryBuilder<Note, Note, QDistinct> distinctByTitleMetadata(
+      {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'titleMetadata',
+          caseSensitive: caseSensitive);
     });
   }
 
@@ -1945,6 +2138,12 @@ extension NoteQueryProperty on QueryBuilder<Note, Note, QQueryProperty> {
     });
   }
 
+  QueryBuilder<Note, String?, QQueryOperations> titleMetadataProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'titleMetadata');
+    });
+  }
+
   QueryBuilder<Note, DateTime, QQueryOperations> updatedAtProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'updatedAt');
@@ -1967,30 +2166,40 @@ extension NoteQueryProperty on QueryBuilder<Note, Note, QQueryProperty> {
 
 const ContentBlockSchema = Schema(
   name: r'ContentBlock',
-  id: 1111111111117,
+  id: 4517901226766660096,
   properties: {
-    r'content': PropertySchema(
+    r'backgroundColor': PropertySchema(
       id: 0,
+      name: r'backgroundColor',
+      type: IsarType.string,
+    ),
+    r'content': PropertySchema(
+      id: 1,
       name: r'content',
       type: IsarType.string,
     ),
     r'id': PropertySchema(
-      id: 1,
+      id: 2,
       name: r'id',
       type: IsarType.string,
     ),
     r'isChecked': PropertySchema(
-      id: 2,
+      id: 3,
       name: r'isChecked',
       type: IsarType.bool,
     ),
     r'metadata': PropertySchema(
-      id: 3,
+      id: 4,
       name: r'metadata',
       type: IsarType.string,
     ),
+    r'textColor': PropertySchema(
+      id: 5,
+      name: r'textColor',
+      type: IsarType.string,
+    ),
     r'type': PropertySchema(
-      id: 4,
+      id: 6,
       name: r'type',
       type: IsarType.string,
       enumMap: _ContentBlocktypeEnumValueMap,
@@ -2008,10 +2217,22 @@ int _contentBlockEstimateSize(
   Map<Type, List<int>> allOffsets,
 ) {
   var bytesCount = offsets.last;
+  {
+    final value = object.backgroundColor;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
   bytesCount += 3 + object.content.length * 3;
   bytesCount += 3 + object.id.length * 3;
   {
     final value = object.metadata;
+    if (value != null) {
+      bytesCount += 3 + value.length * 3;
+    }
+  }
+  {
+    final value = object.textColor;
     if (value != null) {
       bytesCount += 3 + value.length * 3;
     }
@@ -2026,11 +2247,13 @@ void _contentBlockSerialize(
   List<int> offsets,
   Map<Type, List<int>> allOffsets,
 ) {
-  writer.writeString(offsets[0], object.content);
-  writer.writeString(offsets[1], object.id);
-  writer.writeBool(offsets[2], object.isChecked);
-  writer.writeString(offsets[3], object.metadata);
-  writer.writeString(offsets[4], object.type.name);
+  writer.writeString(offsets[0], object.backgroundColor);
+  writer.writeString(offsets[1], object.content);
+  writer.writeString(offsets[2], object.id);
+  writer.writeBool(offsets[3], object.isChecked);
+  writer.writeString(offsets[4], object.metadata);
+  writer.writeString(offsets[5], object.textColor);
+  writer.writeString(offsets[6], object.type.name);
 }
 
 ContentBlock _contentBlockDeserialize(
@@ -2040,11 +2263,13 @@ ContentBlock _contentBlockDeserialize(
   Map<Type, List<int>> allOffsets,
 ) {
   final object = ContentBlock(
-    content: reader.readStringOrNull(offsets[0]) ?? '',
-    id: reader.readStringOrNull(offsets[1]) ?? '',
-    isChecked: reader.readBoolOrNull(offsets[2]),
-    metadata: reader.readStringOrNull(offsets[3]),
-    type: _ContentBlocktypeValueEnumMap[reader.readStringOrNull(offsets[4])] ??
+    backgroundColor: reader.readStringOrNull(offsets[0]),
+    content: reader.readStringOrNull(offsets[1]) ?? '',
+    id: reader.readStringOrNull(offsets[2]) ?? '',
+    isChecked: reader.readBoolOrNull(offsets[3]),
+    metadata: reader.readStringOrNull(offsets[4]),
+    textColor: reader.readStringOrNull(offsets[5]),
+    type: _ContentBlocktypeValueEnumMap[reader.readStringOrNull(offsets[6])] ??
         BlockType.paragraph,
   );
   return object;
@@ -2058,14 +2283,18 @@ P _contentBlockDeserializeProp<P>(
 ) {
   switch (propertyId) {
     case 0:
-      return (reader.readStringOrNull(offset) ?? '') as P;
+      return (reader.readStringOrNull(offset)) as P;
     case 1:
       return (reader.readStringOrNull(offset) ?? '') as P;
     case 2:
-      return (reader.readBoolOrNull(offset)) as P;
+      return (reader.readStringOrNull(offset) ?? '') as P;
     case 3:
-      return (reader.readStringOrNull(offset)) as P;
+      return (reader.readBoolOrNull(offset)) as P;
     case 4:
+      return (reader.readStringOrNull(offset)) as P;
+    case 5:
+      return (reader.readStringOrNull(offset)) as P;
+    case 6:
       return (_ContentBlocktypeValueEnumMap[reader.readStringOrNull(offset)] ??
           BlockType.paragraph) as P;
     default:
@@ -2094,6 +2323,160 @@ const _ContentBlocktypeValueEnumMap = {
 
 extension ContentBlockQueryFilter
     on QueryBuilder<ContentBlock, ContentBlock, QFilterCondition> {
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'backgroundColor',
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'backgroundColor',
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'backgroundColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'backgroundColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'backgroundColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'backgroundColor',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'backgroundColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'backgroundColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'backgroundColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'backgroundColor',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'backgroundColor',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      backgroundColorIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'backgroundColor',
+        value: '',
+      ));
+    });
+  }
+
   QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
       contentEqualTo(
     String value, {
@@ -2538,6 +2921,160 @@ extension ContentBlockQueryFilter
     return QueryBuilder.apply(this, (query) {
       return query.addFilterCondition(FilterCondition.greaterThan(
         property: r'metadata',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorIsNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNull(
+        property: r'textColor',
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorIsNotNull() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(const FilterCondition.isNotNull(
+        property: r'textColor',
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorEqualTo(
+    String? value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'textColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorGreaterThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        include: include,
+        property: r'textColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorLessThan(
+    String? value, {
+    bool include = false,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.lessThan(
+        include: include,
+        property: r'textColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorBetween(
+    String? lower,
+    String? upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.between(
+        property: r'textColor',
+        lower: lower,
+        includeLower: includeLower,
+        upper: upper,
+        includeUpper: includeUpper,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorStartsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.startsWith(
+        property: r'textColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorEndsWith(
+    String value, {
+    bool caseSensitive = true,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.endsWith(
+        property: r'textColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorContains(String value, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.contains(
+        property: r'textColor',
+        value: value,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorMatches(String pattern, {bool caseSensitive = true}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.matches(
+        property: r'textColor',
+        wildcard: pattern,
+        caseSensitive: caseSensitive,
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorIsEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.equalTo(
+        property: r'textColor',
+        value: '',
+      ));
+    });
+  }
+
+  QueryBuilder<ContentBlock, ContentBlock, QAfterFilterCondition>
+      textColorIsNotEmpty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(FilterCondition.greaterThan(
+        property: r'textColor',
         value: '',
       ));
     });
