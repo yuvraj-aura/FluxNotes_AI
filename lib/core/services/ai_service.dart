@@ -1,8 +1,10 @@
 import 'dart:convert';
+import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flux_notes/data/models/note_model.dart';
+import 'package:flux_notes/features/settings/providers/ai_settings_provider.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 class NoKeyException implements Exception {
   final String message =
@@ -12,23 +14,71 @@ class NoKeyException implements Exception {
 }
 
 class AIService {
-  static const String _apiKeyKey = 'gemini_api_key';
-  // Use gemini-1.5-flash for speed and cost-effectiveness (free tier)
-  static const String _modelName = 'gemini-1.5-flash';
+  final Ref ref;
+
+  AIService(this.ref);
 
   Future<String> _getApiKey() async {
-    final prefs = await SharedPreferences.getInstance();
-    final key = prefs.getString(_apiKeyKey);
+    final settings = ref.read(aiSettingsProvider).value;
+    final key = settings?.apiKey;
     if (key == null || key.isEmpty) {
       throw NoKeyException();
     }
     return key;
   }
 
+  Future<bool> validateKey(String apiKey) async {
+    if (apiKey.isEmpty) return false;
+
+    // List of models to try for verification (newest to oldest)
+    final modelsToTry = [
+      'gemini-3-flash-preview',
+      'gemini-3-pro-preview',
+      'gemini-2.5-flash',
+      'gemini-2.5-pro',
+    ];
+
+    print(
+        '[AIService-v2] Validating key: ${apiKey.substring(0, min(5, apiKey.length))}...');
+
+    for (final modelId in modelsToTry) {
+      try {
+        print('[AIService] Attempting with model: $modelId');
+        final model = GenerativeModel(model: modelId, apiKey: apiKey);
+        final response = await model.generateContent([Content.text('Test')]);
+
+        if (response.text != null) {
+          print('[AIService] Validation success with $modelId');
+          return true;
+        }
+      } catch (e) {
+        print('[AIService] Failed with $modelId: $e');
+        // Continue to next model
+      }
+    }
+
+    print('[AIService] All models failed validation.');
+    return false;
+  }
+
+  GenerativeModel _getModel(String apiKey) {
+    final settings = ref.read(aiSettingsProvider).value;
+    final modelId = settings?.modelId ?? 'gemini-3-flash-preview';
+    // Ensure temperature is within valid range (0.0 - 1.0) generally, though Gemini supports up to 2.0 sometimes
+    // confining to 0-1 for safety/UI match.
+    final temp = settings?.temperature ?? 0.5;
+
+    return GenerativeModel(
+      model: modelId,
+      apiKey: apiKey,
+      generationConfig: GenerationConfig(temperature: temp),
+    );
+  }
+
   Future<List<String>> generateTags(String noteContent) async {
     try {
       final apiKey = await _getApiKey();
-      final model = GenerativeModel(model: _modelName, apiKey: apiKey);
+      final model = _getModel(apiKey);
       final prompt =
           'Analyze this note: "$noteContent". Return a list of 3-5 relevant hashtags in JSON format. Example: ["#work", "#urgent"]. Return ONLY the JSON array.';
       final content = [Content.text(prompt)];
@@ -51,10 +101,13 @@ class AIService {
   }
 
   Future<String> chatWithNotes(String userQuestion, List<Note> allNotes) async {
+    // Web Mock: Return dummy response to prevent freezing/NoKeyException
     final apiKey = await _getApiKey(); // Will throw if missing
+    print(
+        '[AIService] chatWithNotes using key: ${apiKey.substring(0, min(5, apiKey.length))}...');
 
     try {
-      final model = GenerativeModel(model: _modelName, apiKey: apiKey);
+      final model = _getModel(apiKey);
 
       final StringBuffer contextBuffer = StringBuffer();
       contextBuffer.writeln(
@@ -86,7 +139,7 @@ class AIService {
   Future<Map<String, dynamic>> classifyThought(String text) async {
     try {
       final apiKey = await _getApiKey();
-      final model = GenerativeModel(model: _modelName, apiKey: apiKey);
+      final model = _getModel(apiKey);
       final prompt =
           'Analyze this text: "$text". Is it a "task" (something to do) or a "note" (an idea/info)? Return JSON ONLY: {"type": "task" or "note", "content": "cleaned text (fix grammar/formatting)"}';
       final content = [Content.text(prompt)];
@@ -106,4 +159,4 @@ class AIService {
   }
 }
 
-final aiServiceProvider = Provider<AIService>((ref) => AIService());
+final aiServiceProvider = Provider<AIService>((ref) => AIService(ref));

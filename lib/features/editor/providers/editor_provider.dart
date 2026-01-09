@@ -9,15 +9,19 @@ class NoteEditorNotifier extends StateNotifier<AsyncValue<Note>> {
   NoteEditorNotifier(this._noteRepository) : super(const AsyncLoading());
 
   Future<void> loadNote(int id) async {
+    print('[EditorProvider] Loading note $id...');
     state = const AsyncLoading();
     try {
       final note = await _noteRepository.getNote(id);
       if (note != null) {
+        print('[EditorProvider] Note found: ${note.title}');
         state = AsyncData(note);
       } else {
+        print('[EditorProvider] Note NOT found for id $id');
         state = AsyncError('Note not found', StackTrace.current);
       }
     } catch (e, s) {
+      print('[EditorProvider] Error loading note: $e');
       state = AsyncError(e, s);
     }
   }

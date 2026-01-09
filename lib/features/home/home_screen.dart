@@ -14,6 +14,11 @@ import 'package:flux_notes/widgets/note_card.dart';
 import 'package:flux_notes/widgets/search_bar.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+enum SortOrder { updatedNewest, updatedOldest, createdNewest, titleAZ }
+
+final sortOrderProvider =
+    StateProvider<SortOrder>((ref) => SortOrder.updatedNewest);
+
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
@@ -132,6 +137,7 @@ class HomeView extends ConsumerWidget {
                     ),
                   ],
                 ),
+                // Sort Button acting as a Popup/Dropdown
                 Container(
                   width: 40,
                   height: 40,
@@ -139,7 +145,35 @@ class HomeView extends ConsumerWidget {
                     color: AppTheme.cardDark,
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.sort, color: Colors.white),
+                  child: PopupMenuButton<SortOrder>(
+                    icon: const Icon(Icons.sort, color: Colors.white, size: 20),
+                    color: AppTheme.cardDark,
+                    onSelected: (value) {
+                      ref.read(sortOrderProvider.notifier).state = value;
+                    },
+                    itemBuilder: (context) => [
+                      const PopupMenuItem(
+                        value: SortOrder.updatedNewest,
+                        child: Text("Updated: Newest",
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                      const PopupMenuItem(
+                        value: SortOrder.updatedOldest,
+                        child: Text("Updated: Oldest",
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                      const PopupMenuItem(
+                        value: SortOrder.createdNewest,
+                        child: Text("Created: Newest",
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                      const PopupMenuItem(
+                        value: SortOrder.titleAZ,
+                        child: Text("Title: A-Z",
+                            style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -164,13 +198,37 @@ class HomeView extends ConsumerWidget {
                       ),
                     );
                   }
+                  final sortOrder = ref.watch(sortOrderProvider);
+                  // Create a modifiable copy to sort
+                  final sortedNotes = List<Note>.from(notes);
+
+                  switch (sortOrder) {
+                    case SortOrder.updatedNewest:
+                      sortedNotes
+                          .sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+                      break;
+                    case SortOrder.updatedOldest:
+                      sortedNotes
+                          .sort((a, b) => a.updatedAt.compareTo(b.updatedAt));
+                      break;
+                    case SortOrder.createdNewest:
+                      sortedNotes
+                          .sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                      break;
+                    case SortOrder.titleAZ:
+                      sortedNotes.sort((a, b) => a.title
+                          .toLowerCase()
+                          .compareTo(b.title.toLowerCase()));
+                      break;
+                  }
+
                   return MasonryGridView.count(
                     crossAxisCount: 2,
                     mainAxisSpacing: 16,
                     crossAxisSpacing: 16,
-                    itemCount: notes.length,
+                    itemCount: sortedNotes.length,
                     itemBuilder: (context, index) {
-                      final note = notes[index];
+                      final note = sortedNotes[index];
                       return NoteCard(
                         title: note.title.isEmpty ? 'Untitled' : note.title,
                         preview: _buildPreviewText(note),

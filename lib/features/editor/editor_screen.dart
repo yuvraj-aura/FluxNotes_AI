@@ -193,11 +193,17 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   void _saveNoteWithDebounce() {
+    if (!mounted) return;
     setState(() {
       _isSaving = true;
     });
     _debouncer.run(() async {
-      await ref.read(noteEditorProvider.notifier).saveNote();
+      if (!mounted) return; // Guard before use
+      try {
+        await ref.read(noteEditorProvider.notifier).saveNote();
+      } catch (e) {
+        debugPrint('Save Error: $e');
+      }
       if (mounted) {
         setState(() {
           _isSaving = false;
@@ -207,6 +213,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
   }
 
   void _addNewBlock(String currentBlockId) {
+    if (!mounted) return;
     final note = ref.read(noteEditorProvider).value!;
     final index = note.blocks.indexWhere((b) => b.id == currentBlockId);
     ref
@@ -214,6 +221,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         .addBlock(index + 1, BlockType.paragraph);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return; // Guard ref access
       // Wait for rebuild so controller exists
       final newNote = ref.read(noteEditorProvider).value!;
       if (index + 1 < newNote.blocks.length) {
@@ -255,7 +263,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
         backgroundColor: Colors.transparent,
         automaticallyImplyLeading: false,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
           onPressed: () => Navigator.of(context).pop(),
         ),
         actions: [
@@ -264,13 +272,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
             child: Center(
               child: Text(
                 _isSaving ? 'Saving...' : 'Saved',
-                style: TextStyle(
+                style: const TextStyle(
                   fontStyle: FontStyle.italic,
-                  color: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.color
-                      ?.withValues(alpha: 0.6),
+                  color: Colors.white70,
                 ),
               ),
             ),

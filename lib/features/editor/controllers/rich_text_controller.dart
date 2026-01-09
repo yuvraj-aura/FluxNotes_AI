@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class StyleSpan {
   final int start;
@@ -45,7 +44,7 @@ class StyleSpan {
 class RichTextController extends TextEditingController {
   List<StyleSpan> _spans = [];
 
-  RichTextController({String? text, String? metadata}) : super(text: text) {
+  RichTextController({super.text, String? metadata}) {
     if (metadata != null && metadata.isNotEmpty) {
       try {
         final decoded = jsonDecode(metadata);
@@ -107,6 +106,7 @@ class RichTextController extends TextEditingController {
   }
 */
 
+/*
   void _updateSpansForChange(String oldText, String newText) {
     // 1. Detect diff
     int start = 0;
@@ -214,6 +214,7 @@ class RichTextController extends TextEditingController {
 
     _spans = newSpans;
   }
+*/
 
   String get metadata {
     if (_spans.isEmpty) return '';
@@ -223,7 +224,7 @@ class RichTextController extends TextEditingController {
   void toggleStyle(String key, bool? value) {
     if (selection.isCollapsed) return;
     _applyStyleToSelection((span) {
-      if (key == 'bold')
+      if (key == 'bold') {
         return StyleSpan(
             start: span.start,
             end: span.end,
@@ -232,7 +233,8 @@ class RichTextController extends TextEditingController {
             underline: span.underline,
             color: span.color,
             backgroundColor: span.backgroundColor);
-      if (key == 'italic')
+      }
+      if (key == 'italic') {
         return StyleSpan(
             start: span.start,
             end: span.end,
@@ -241,7 +243,8 @@ class RichTextController extends TextEditingController {
             underline: span.underline,
             color: span.color,
             backgroundColor: span.backgroundColor);
-      if (key == 'underline')
+      }
+      if (key == 'underline') {
         return StyleSpan(
             start: span.start,
             end: span.end,
@@ -250,6 +253,7 @@ class RichTextController extends TextEditingController {
             underline: value,
             color: span.color,
             backgroundColor: span.backgroundColor);
+      }
       return span;
     });
   }
@@ -257,7 +261,7 @@ class RichTextController extends TextEditingController {
   void setColor(String key, int? value) {
     if (selection.isCollapsed) return;
     _applyStyleToSelection((span) {
-      if (key == 'color')
+      if (key == 'color') {
         return StyleSpan(
             start: span.start,
             end: span.end,
@@ -266,7 +270,8 @@ class RichTextController extends TextEditingController {
             underline: span.underline,
             color: value,
             backgroundColor: span.backgroundColor);
-      if (key == 'backgroundColor')
+      }
+      if (key == 'backgroundColor') {
         return StyleSpan(
             start: span.start,
             end: span.end,
@@ -275,6 +280,7 @@ class RichTextController extends TextEditingController {
             underline: span.underline,
             color: span.color,
             backgroundColor: value);
+      }
       return span;
     });
   }
@@ -460,22 +466,27 @@ class RichTextController extends TextEditingController {
       if (span.start >= text.length) break;
 
       TextStyle spanStyle = style ?? const TextStyle();
-      if (span.bold == true)
+      if (span.bold == true) {
         spanStyle = spanStyle.copyWith(fontWeight: FontWeight.bold);
-      else if (span.bold == false)
+      } else if (span.bold == false) {
         spanStyle = spanStyle.copyWith(
             fontWeight: FontWeight.normal); // Explicit turn off?
+      }
 
-      if (span.italic == true)
+      if (span.italic == true) {
         spanStyle = spanStyle.copyWith(fontStyle: FontStyle.italic);
-      if (span.underline == true)
+      }
+      if (span.underline == true) {
         spanStyle = spanStyle.copyWith(decoration: TextDecoration.underline);
+      }
 
-      if (span.color != null)
+      if (span.color != null) {
         spanStyle = spanStyle.copyWith(color: Color(span.color!));
-      if (span.backgroundColor != null)
+      }
+      if (span.backgroundColor != null) {
         spanStyle =
             spanStyle.copyWith(backgroundColor: Color(span.backgroundColor!));
+      }
 
       children.add(TextSpan(
           text: text.substring(span.start, effectiveEnd), style: spanStyle));

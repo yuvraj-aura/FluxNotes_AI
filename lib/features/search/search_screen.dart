@@ -1,3 +1,4 @@
+import 'dart:ui'; // For BackdropFilter
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flux_notes/core/services/ai_service.dart';
@@ -16,6 +17,7 @@ class SearchScreen extends ConsumerStatefulWidget {
 
 class _SearchScreenState extends ConsumerState<SearchScreen> {
   final TextEditingController _searchController = TextEditingController();
+
   String _searchQuery = '';
   String? _aiResponse;
   bool _isAiLoading = false;
@@ -26,16 +28,21 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     super.dispose();
   }
 
-  Future<void> _askAI(List<Note> allNotes) async {
+  // --- AI Interaction ---
+  Future<void> _askAI(List<Note> allNotes, [String? query]) async {
+    final q = query ?? _searchQuery;
+    if (q.isEmpty) return;
+
     setState(() {
+      _searchQuery = q;
+      _searchController.text = q;
       _isAiLoading = true;
       _aiResponse = null;
     });
 
     try {
-      final response = await ref
-          .read(aiServiceProvider)
-          .chatWithNotes(_searchQuery, allNotes);
+      final response =
+          await ref.read(aiServiceProvider).chatWithNotes(q, allNotes);
 
       if (mounted) {
         setState(() {
@@ -43,44 +50,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           _aiResponse = response;
         });
       }
-    } on NoKeyException catch (e) {
-      if (mounted) {
-        setState(() {
-          _isAiLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.message),
-            action: SnackBarAction(
-              label: 'Settings',
-              onPressed: () {
-                // Ideally navigate to settings, but since it's a tab, we might need a way to switch tabs.
-                // For now just show message or rely on user knowing where Settings is.
-                // Or we can create a temporary dialog.
-              },
-            ),
-          ),
-        );
-      }
     } catch (e) {
       if (mounted) {
         setState(() {
           _isAiLoading = false;
-          _aiResponse = "Error: $e";
+          _aiResponse = "I couldn't process that right now. ($e)";
         });
       }
     }
-  }
-
-  bool get _isQuestion {
-    final q = _searchQuery.trim().toLowerCase();
-    return q.isNotEmpty &&
-        (q.startsWith('what') ||
-            q.startsWith('how') ||
-            q.startsWith('why') ||
-            q.startsWith('who') ||
-            q.startsWith('where') ||
-            q.endsWith('?'));
   }
 
   @override
@@ -88,292 +65,322 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
     final notesAsync = ref.watch(notesStreamProvider);
 
     return Scaffold(
-      backgroundColor: AppTheme.black,
-      body: SafeArea(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // App Bar / Header
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: Text(
-                  'Search',
-                  style: GoogleFonts.inter(
-                    fontSize: 17,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
+      resizeToAvoidBottomInset: false,
+      extendBodyBehindAppBar: true,
+      backgroundColor: Colors.black,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF0F172A), // Deep Slate Blue
+              Color(0xFF000000), // Black
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: notesAsync.when(
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (err, stack) => Center(
+                child: Text('Error: $err',
+                    style: const TextStyle(color: Colors.white))),
+            data: (allNotes) {
+              return Stack(
+                children: [
+                  // 1. Background / Placeholder for Graph
+                  if (_searchQuery.isEmpty)
+                    Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.hub,
+                              size: 64, color: Colors.white.withOpacity(0.1)),
+                          const SizedBox(height: 16),
+                          Text(
+                            "Knowledge Graph Disabled",
+                            style: GoogleFonts.inter(color: Colors.white24),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                  // 2. "Zero-Query" Suggested Chips
+                  if (_searchQuery.isEmpty &&
+                      !_isAiLoading &&
+                      _aiResponse == null &&
+                      allNotes.isNotEmpty)
+                    Positioned(
+                      top: 100,
+                      left: 0,
+                      right: 0,
+                      child: Center(
+                        // Center the chips horizontally
+                        child: Wrap(
+                          alignment: WrapAlignment.center,
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            _buildGlassChip("Summarize my week",
+                                () => _askAI(allNotes, "Summarize my week")),
+                            _buildGlassChip(
+                                "Project Status?",
+                                () => _askAI(allNotes,
+                                    "What is the status of my projects?")),
+                            _buildGlassChip(
+                                "Connect the dots",
+                                () => _askAI(allNotes,
+                                    "Find unexpected connections between my notes")),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                  // 3. Search Results Overlay (Related Memories)
+                  // Only show AFTER AI responds, to keep the "thinking" phase clean.
+                  if (_searchQuery.isNotEmpty && _aiResponse != null)
+                    Positioned.fill(
+                      top: 80,
+                      child: Container(
+                        color: Colors.black.withValues(alpha: 0.85),
+                        child: _buildSearchResults(allNotes),
+                      ),
+                    ),
+
+                  // 4. Floating Search Bar
+                  Positioned(
+                    top: 16,
+                    left: 16,
+                    right: 16,
+                    child: _buildGlassSearchBar(allNotes),
                   ),
+
+                  // 5. AI Response Card
+                  if (_aiResponse != null || _isAiLoading)
+                    Positioned(
+                      bottom: 32,
+                      left: 16,
+                      right: 16,
+                      child: _buildAiResponseCard(),
+                    )
+                ],
+              );
+            },
+          ),
+        ),
+      ),
+    );
+  }
+
+  // --- Widgets ---
+
+  Widget _buildGlassSearchBar(List<Note> allNotes) {
+    return Container(
+      height: 60,
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.15), // Slightly more opaque
+        borderRadius: BorderRadius.circular(30),
+        border:
+            Border.all(color: Colors.white.withValues(alpha: 0.2), width: 0.5),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.bubble_chart, color: Colors.white70),
+          const SizedBox(width: 12),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 16),
+              decoration: InputDecoration(
+                hintText: "Ask Flux Intelligence...",
+                hintStyle: GoogleFonts.inter(color: Colors.white38),
+                border: InputBorder.none,
+              ),
+              onChanged: (val) {
+                setState(() {
+                  _searchQuery = val;
+                  // Clear AI response if typing new query, but keep text field active
+                  if (val.isEmpty) _aiResponse = null;
+                });
+              },
+              onSubmitted: (val) {
+                if (val.trim().isNotEmpty) {
+                  // DIRECT AI TRIGGER
+                  _askAI(allNotes, val);
+                  // Dismiss keyboard for cleaner UI
+                  FocusScope.of(context).unfocus();
+                }
+              },
+            ),
+          ),
+          // AI Passive Indicator / Trigger
+          if (_searchQuery.isNotEmpty && !_isAiLoading)
+            IconButton(
+              icon: const Icon(Icons.auto_awesome, color: Colors.blueAccent),
+              onPressed: () {
+                // Keep as secondary trigger
+                _askAI(allNotes, _searchQuery);
+                FocusScope.of(context).unfocus();
+              },
+            ),
+          if (_searchQuery.isNotEmpty)
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white54),
+              onPressed: () {
+                _searchController.clear();
+                setState(() {
+                  _searchQuery = '';
+                  _aiResponse = null;
+                  _isAiLoading = false;
+                });
+              },
+            )
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGlassChip(String label, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.1), // No blur
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+              color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSearchResults(List<Note> allNotes) {
+    if (_isAiLoading) return const SizedBox.expand(); // AI Card handles loading
+
+    final results = allNotes.where((n) {
+      final q = _searchQuery.toLowerCase();
+      return n.title.toLowerCase().contains(q) ||
+          n.blocks.any((b) => b.content.toLowerCase().contains(q));
+    }).toList();
+
+    if (results.isEmpty && _aiResponse == null) {
+      return Center(
+        child: Text("No memories found.",
+            style: GoogleFonts.inter(color: Colors.white38)),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
+      itemCount: results.length,
+      itemBuilder: (context, index) {
+        final note = results[index];
+        final preview = note.blocks.map((b) => b.content).join(" ");
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppTheme.cardDark,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: Colors.white10),
+          ),
+          child: ListTile(
+            contentPadding: EdgeInsets.zero,
+            title: Text(note.title.isNotEmpty ? note.title : "Untitled",
+                style: GoogleFonts.inter(
+                    color: Colors.white, fontWeight: FontWeight.w600)),
+            subtitle: Text(
+              preview,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
+            ),
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                    builder: (context) => EditorScreen(noteId: note.id)),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildAiResponseCard() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A).withValues(alpha: 0.95),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(
+            color: const Color(0xFF3B82F6)
+                .withValues(alpha: 0.3)), // Glowing Border
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+            blurRadius: 20,
+            spreadRadius: 4,
+          )
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.auto_awesome,
+                  color: Color(0xFF3B82F6), size: 18),
+              const SizedBox(width: 8),
+              Text(
+                "Flux Intelligence",
+                style: GoogleFonts.oswald(
+                  // Fallback or use standard if missing
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF3B82F6),
+                  letterSpacing: 1.5,
                 ),
               ),
-            ),
-
-            Expanded(
-              child: notesAsync.when(
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (err, stack) => Center(
-                    child: Text('Error: $err',
-                        style: const TextStyle(color: Colors.white))),
-                data: (allNotes) {
-                  final filteredNotes = _searchQuery.isEmpty
-                      ? <Note>[]
-                      : allNotes.where((note) {
-                          final query = _searchQuery.toLowerCase();
-                          final titleMatch =
-                              note.title.toLowerCase().contains(query);
-                          final contentMatch = note.blocks.any(
-                              (b) => b.content.toLowerCase().contains(query));
-                          return titleMatch || contentMatch;
-                        }).toList();
-
-                  return Column(
-                    children: [
-                      // Search Input Area
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16),
-                        child: Container(
-                          height: 50,
-                          decoration: BoxDecoration(
-                            color: AppTheme.cardDark,
-                            borderRadius: BorderRadius.circular(25),
-                            border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.0)),
-                          ),
-                          child: Row(
-                            children: [
-                              const Padding(
-                                padding: EdgeInsets.only(left: 16),
-                                child: Icon(Icons.search,
-                                    color: Colors.grey, size: 24),
-                              ),
-                              Expanded(
-                                child: TextField(
-                                  controller: _searchController,
-                                  onChanged: (value) {
-                                    setState(() {
-                                      _searchQuery = value;
-                                      if (_aiResponse != null) {
-                                        _aiResponse = null;
-                                      }
-                                    });
-                                  },
-                                  autofocus: true,
-                                  decoration: InputDecoration(
-                                    hintText:
-                                        'Search or Ask ("How...", "What...")',
-                                    hintStyle:
-                                        GoogleFonts.inter(color: Colors.grey),
-                                    border: InputBorder.none,
-                                    contentPadding: const EdgeInsets.symmetric(
-                                        horizontal: 12),
-                                  ),
-                                  style: GoogleFonts.inter(color: Colors.white),
-                                ),
-                              ),
-                              if (_searchQuery.isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(right: 16),
-                                  child: GestureDetector(
-                                      onTap: () {
-                                        _searchController.clear();
-                                        setState(() {
-                                          _searchQuery = '';
-                                          _aiResponse = null;
-                                        });
-                                      },
-                                      child: const Icon(Icons.close,
-                                          color: Colors.grey, size: 22)),
-                                ),
-                            ],
-                          ),
-                        ),
-                      ),
-
-                      // AI Section
-                      if (_isQuestion && _searchQuery.length > 3)
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 300),
-                            padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF581C87), Color(0xFF1E3A8A)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              borderRadius: BorderRadius.circular(16),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFA855F7)
-                                      .withValues(alpha: 0.3),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.auto_awesome,
-                                        color: Colors.white, size: 20),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Flux Intelligence',
-                                      style: GoogleFonts.inter(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                    const Spacer(),
-                                    if (!_isAiLoading && _aiResponse == null)
-                                      InkWell(
-                                        onTap: () => _askAI(allNotes),
-                                        child: Container(
-                                          padding: const EdgeInsets.symmetric(
-                                              horizontal: 12, vertical: 6),
-                                          decoration: BoxDecoration(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.2),
-                                            borderRadius:
-                                                BorderRadius.circular(20),
-                                          ),
-                                          child: Text(
-                                            'Ask AI',
-                                            style: GoogleFonts.inter(
-                                              color: Colors.white,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                                if (_isAiLoading)
-                                  const Padding(
-                                    padding: EdgeInsets.only(top: 16),
-                                    child: LinearProgressIndicator(
-                                      backgroundColor: Colors.white10,
-                                      valueColor: AlwaysStoppedAnimation<Color>(
-                                          Colors.white),
-                                    ),
-                                  ),
-                                if (_aiResponse != null)
-                                  Padding(
-                                    padding: const EdgeInsets.only(top: 12),
-                                    child: Text(
-                                      _aiResponse!,
-                                      style: GoogleFonts.inter(
-                                        color: Colors.white
-                                            .withValues(alpha: 0.95),
-                                        height: 1.5,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                        ),
-
-                      const SizedBox(height: 24),
-
-                      // Results
-                      Expanded(
-                        child: _searchQuery.isEmpty
-                            ? Center(
-                                child: Column(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.search,
-                                        size: 64, color: Colors.grey[800]),
-                                    const SizedBox(height: 16),
-                                    Text(
-                                      'Search for your notes',
-                                      style:
-                                          GoogleFonts.inter(color: Colors.grey),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : filteredNotes.isEmpty
-                                ? Center(
-                                    child: Text(
-                                      'No matching notes found',
-                                      style:
-                                          GoogleFonts.inter(color: Colors.grey),
-                                    ),
-                                  )
-                                : ListView.builder(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 16),
-                                    itemCount: filteredNotes.length,
-                                    itemBuilder: (context, index) {
-                                      final note = filteredNotes[index];
-                                      final contentPreview = note.blocks
-                                          .map((b) => b.content)
-                                          .join(' ');
-
-                                      return GestureDetector(
-                                        onTap: () {
-                                          Navigator.of(context).push(
-                                            MaterialPageRoute(
-                                              builder: (context) =>
-                                                  EditorScreen(noteId: note.id),
-                                            ),
-                                          );
-                                        },
-                                        child: Container(
-                                          margin:
-                                              const EdgeInsets.only(bottom: 12),
-                                          padding: const EdgeInsets.all(16),
-                                          decoration: BoxDecoration(
-                                            color: AppTheme.cardDark,
-                                            borderRadius:
-                                                BorderRadius.circular(16),
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment:
-                                                CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                note.title.isNotEmpty
-                                                    ? note.title
-                                                    : 'Untitled',
-                                                style: GoogleFonts.inter(
-                                                  color: Colors.white,
-                                                  fontSize: 16,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                contentPreview,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: GoogleFonts.inter(
-                                                  color: Colors.grey,
-                                                  fontSize: 14,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      );
-                                    },
-                                  ),
-                      ),
-                    ],
-                  );
-                },
+              const Spacer(),
+              if (!_isAiLoading)
+                GestureDetector(
+                  onTap: () => setState(() => _aiResponse = null),
+                  child:
+                      const Icon(Icons.close, color: Colors.white38, size: 18),
+                )
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (_isAiLoading)
+            Center(
+              child: ShaderMask(
+                shaderCallback: (bounds) =>
+                    const LinearGradient(colors: [Colors.blue, Colors.purple])
+                        .createShader(bounds),
+                child: const CircularProgressIndicator(color: Colors.white),
+              ),
+            )
+          else
+            Text(
+              _aiResponse!,
+              style: GoogleFonts.sourceCodePro(
+                // Typewriter feel
+                color: Colors.white.withValues(alpha: 0.9),
+                fontSize: 14,
+                height: 1.6,
               ),
             ),
-          ],
-        ),
+        ],
       ),
     );
   }

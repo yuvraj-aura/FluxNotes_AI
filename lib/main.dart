@@ -11,6 +11,8 @@ import 'package:isar/isar.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flux_notes/data/models/note_model.dart';
 
+import 'package:flux_notes/core/providers/font_scale_provider.dart';
+
 void main() async {
   // 1. Initialize Bindings (REQUIRED)
   WidgetsFlutterBinding.ensureInitialized();
@@ -71,6 +73,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeProvider);
+    final fontScale = ref.watch(fontScaleProvider);
 
     return MaterialApp(
       title: 'FluxNotes',
@@ -78,6 +81,14 @@ class MyApp extends ConsumerWidget {
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       debugShowCheckedModeBanner: false,
+      builder: (context, child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(
+            textScaler: TextScaler.linear(fontScale),
+          ),
+          child: child!,
+        );
+      },
       home: const HomeScreen(),
     );
   }

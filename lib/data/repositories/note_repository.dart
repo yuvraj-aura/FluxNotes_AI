@@ -27,9 +27,10 @@ class NoteRepository {
     if (!kIsWeb) {
       db = openDB();
     } else {
-      // Initialize with non-terminating future or error to satisfy type system
-      // We cannot use Future.value(null) as it's not a Future<Isar>
-      db = Completer<Isar>().future;
+      // Initialize with error to prevent hanging if await db is hit by mistake
+      db = Future.error('Isar not supported on Web');
+      // Seed demo data for Web so graph isn't empty
+      checkAndSeedDemoNote();
     }
   }
 
@@ -79,14 +80,10 @@ class NoteRepository {
         tags.add(match.group(0)!); // Add the full tag including #
       }
     }
-    // Update tags if any found, otherwise keep existing (or clear? usually we want to sync with content)
-    // If we want auto-tagging to be the ONLY source of tags, we overwrite.
-    // If manual tags exist, we might want to merge.
-    // For now, let's merge with existing tags to preserve manual ones, or overwrite if we assume tags come from text.
-    // Let's merge for safety.
-    final existingTags = Set<String>.from(note.tags);
-    existingTags.addAll(tags);
-    note.tags = existingTags.toList();
+    // REPLACEMENT: We replace the tags list entirely with what is found in the text.
+    // This prevents "partial tags" (e.g. #flux -> #fluxnote) from accumulating
+    // as separate tags due to debounce saving while typing.
+    note.tags = tags.toList();
 
     if (kIsWeb) {
       final index = _webNotes.indexWhere((n) => n.uuid == note.uuid);
@@ -112,9 +109,14 @@ class NoteRepository {
 
   Future<Note?> getNote(int id) async {
     if (kIsWeb) {
+      print(
+          '[NoteRepo] getNote($id) for Web. Total notes: ${_webNotes.length}');
       try {
-        return _webNotes.firstWhere((n) => n.id == id);
+        final note = _webNotes.firstWhere((n) => n.id == id);
+        print('[NoteRepo] Found note: ${note.uuid}');
+        return note;
       } catch (_) {
+        print('[NoteRepo] Note not found with id: $id');
         return null;
       }
     }
@@ -196,19 +198,97 @@ class NoteRepository {
         ..blocks = [
           ContentBlock()
             ..id = const Uuid().v4()
-            ..type = BlockType.paragraph
-            ..content =
-                'FluxNotes is local-first and privacy-focused. To enable the AI features (Auto-tagging, Chat), go to Settings > Brain Connection and enter your free Google Gemini Key.',
+            ..type = BlockType.heading1
+            ..content = 'Welcome to FluxNotes AI! 🌌',
           ContentBlock()
             ..id = const Uuid().v4()
             ..type = BlockType.paragraph
             ..content =
-                '1. Go to Settings tab\n2. Tap "Brain Connection"\n3. Click "Get a Free Gemini Key"\n4. Paste it and save!',
+                'FluxNotes is your local-first, privacy-focused second brain. It combines fast note-taking with powerful AI intelligence.',
+          ContentBlock()
+            ..id = const Uuid().v4()
+            ..type = BlockType.heading2
+            ..content = '🚀 Key Features',
+          ContentBlock()
+            ..id = const Uuid().v4()
+            ..type = BlockType.bullet
+            ..content =
+                '🧠 AI Search: Type "What is..." in the Search tab to ask your notes directly.',
+          ContentBlock()
+            ..id = const Uuid().v4()
+            ..type = BlockType.bullet
+            ..content =
+                '🏷️ Auto-Tagging: Just write #hashtags, and they are instantly saved.',
+          ContentBlock()
+            ..id = const Uuid().v4()
+            ..type = BlockType.bullet
+            ..content =
+                '🔍 Real-Time Filter: The Home search bar instantly finds what you need.',
+          ContentBlock()
+            ..id = const Uuid().v4()
+            ..type = BlockType.bullet
+            ..content =
+                '📶 Sorting: Arrange notes by Updated, Created, or Title.',
+          ContentBlock()
+            ..id = const Uuid().v4()
+            ..type = BlockType.bullet
+            ..content =
+                '🔒 Data Vault: Export backups and keep your data safe.',
+          ContentBlock()
+            ..id = const Uuid().v4()
+            ..type = BlockType.heading2
+            ..content = '⚡ How to Enable AI',
+          ContentBlock()
+            ..id = const Uuid().v4()
+            ..type = BlockType.paragraph
+            ..content =
+                '1. Go to Settings > Brain Connection.\n2. Tap "Get a Free Gemini Key" (free from Google).\n3. Paste the key and save.\n4. Select your preferred model (Gemini 2.5 Flash recommended).',
         ];
 
       await isar.writeTxn(() async {
         await isar.notes.put(note);
       });
     }
+  }
+
+  Future<void> deleteAllNotes() async {
+    if (kIsWeb) {
+      _webNotes.clear();
+      _webStreamController.add(List.from(_webNotes));
+      return;
+    }
+
+    final isar = await db;
+    await isar.writeTxn(() async {
+      await isar.notes.clear();
+    });
+  }
+
+  Future<void> saveNotes(List<Note> notes) async {
+    if (kIsWeb) {
+      for (var note in notes) {
+        final index = _webNotes.indexWhere((n) => n.uuid == note.uuid);
+        if (index >= 0) {
+          _webNotes[index] = note;
+        } else {
+          _webNotes.add(note);
+        }
+      }
+      _webStreamController.add(List.from(_webNotes));
+      return;
+    }
+
+    final isar = await db;
+    await isar.writeTxn(() async {
+      await isar.notes.putAll(notes);
+    });
+  }
+
+  Future<List<Note>> getAllNotesList() async {
+    if (kIsWeb) {
+      return List.from(_webNotes);
+    }
+    final isar = await db;
+    return isar.notes.where().sortByUpdatedAtDesc().findAll();
   }
 }

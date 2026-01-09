@@ -122,9 +122,9 @@ class EditorToolbar extends ConsumerWidget {
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         color: AppTheme.cardDark,
-        border: const Border(
+        border: Border(
           top: BorderSide(color: Colors.white12, width: 0.5),
         ),
       ),
@@ -168,7 +168,8 @@ class EditorToolbar extends ConsumerWidget {
                 icon: Icons.format_color_text,
                 color:
                     currentColor != null ? Color(currentColor) : Colors.white,
-                onColorSelected: (color) => _setTextColor(ref, color?.value),
+                onColorSelected: (color) =>
+                    _setTextColor(ref, color?.toARGB32()),
               ),
               const SizedBox(width: 8),
               _ColorButton(
@@ -178,7 +179,7 @@ class EditorToolbar extends ConsumerWidget {
                     : Colors.transparent,
                 isBackground: true,
                 onColorSelected: (color) =>
-                    _setBackgroundColor(ref, color?.value),
+                    _setBackgroundColor(ref, color?.toARGB32()),
               ),
             ],
           ),

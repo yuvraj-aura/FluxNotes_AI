@@ -155,10 +155,15 @@ class _BlockWidgetState extends State<BlockWidget> {
     try {
       if (widget.block.metadata != null && widget.block.metadata!.isNotEmpty) {
         final meta = jsonDecode(widget.block.metadata!);
-        if (meta['bold'] == true) fontWeight = FontWeight.bold;
-        if (meta['italic'] == true) fontStyle = FontStyle.italic;
-        if (meta['underline'] == true)
+        if (meta['bold'] == true) {
+          fontWeight = FontWeight.bold;
+        }
+        if (meta['italic'] == true) {
+          fontStyle = FontStyle.italic;
+        }
+        if (meta['underline'] == true) {
           decorations.add(TextDecoration.underline);
+        }
       }
     } catch (_) {}
 
@@ -299,7 +304,7 @@ class _BlockWidgetState extends State<BlockWidget> {
                           .textTheme
                           .bodySmall
                           ?.color
-                          ?.withOpacity(0.4),
+                          ?.withValues(alpha: 0.4),
                       size: 20,
                     ),
                   ),
@@ -317,7 +322,7 @@ class _BlockWidgetState extends State<BlockWidget> {
                         ? 'Heading 1'
                         : 'Type "/" for commands',
                     hintStyle: _getTextStyle()
-                        .copyWith(color: Colors.grey.withOpacity(0.5)),
+                        .copyWith(color: Colors.white.withValues(alpha: 0.9)),
                   ),
                 ),
               ),
@@ -338,7 +343,7 @@ class _BlockWidgetState extends State<BlockWidget> {
               border: Border.all(color: Colors.white12),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.5),
+                  color: Colors.black.withValues(alpha: 0.5),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -367,7 +372,7 @@ class _BlockWidgetState extends State<BlockWidget> {
             ),
           ),
 
-        if (false && _detectedUrl != null)
+        if (_detectedUrl != null)
           // ... (Url preview existing logic)
           Padding(
             padding: const EdgeInsets.only(top: 8.0, left: 32.0),

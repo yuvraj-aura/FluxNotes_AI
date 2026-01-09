@@ -1,4 +1,4 @@
-import 'package:isar/isar.dart';
+import 'package:isar/isar.dart'; // Force rebuild
 
 part 'note_model.g.dart';
 

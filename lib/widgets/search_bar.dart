@@ -3,7 +3,9 @@ import 'package:flux_notes/theme/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class CustomSearchBar extends StatelessWidget {
-  const CustomSearchBar({super.key});
+  final ValueChanged<String>? onChanged;
+
+  const CustomSearchBar({super.key, this.onChanged});
 
   @override
   Widget build(BuildContext context) {
@@ -14,6 +16,7 @@ class CustomSearchBar extends StatelessWidget {
       ),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
       child: TextField(
+        onChanged: onChanged,
         decoration: InputDecoration(
           icon: const Icon(Icons.search, color: Colors.grey),
           hintText: 'Search notes, tags...',
