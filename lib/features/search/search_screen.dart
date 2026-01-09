@@ -1,4 +1,3 @@
-import 'dart:ui'; // For BackdropFilter
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flux_notes/core/services/ai_service.dart';
@@ -95,7 +94,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Icon(Icons.hub,
-                              size: 64, color: Colors.white.withOpacity(0.1)),
+                              size: 64,
+                              color: Colors.white.withValues(alpha: 0.1)),
                           const SizedBox(height: 16),
                           Text(
                             "Knowledge Graph Disabled",

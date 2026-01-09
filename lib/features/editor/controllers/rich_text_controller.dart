@@ -58,6 +58,30 @@ class RichTextController extends TextEditingController {
     }
   }
 
+  void setMetadata(String? metadata) {
+    if (metadata != null && metadata.isNotEmpty) {
+      try {
+        final decoded = jsonDecode(metadata);
+        if (decoded is Map<String, dynamic> && decoded.containsKey('spans')) {
+          final spansList = decoded['spans'] as List;
+          _spans = spansList
+              .map((e) => StyleSpan.fromJson(e as Map<String, dynamic>))
+              .toList();
+          notifyListeners();
+        }
+      } catch (_) {
+        // Handle decode error silently or log
+      }
+    } else {
+      // Clear spans if metadata is null/empty (assume plain text)
+      // or should we keep existing? usually 'set' implies replace.
+      if (_spans.isNotEmpty) {
+        _spans = [];
+        notifyListeners();
+      }
+    }
+  }
+
   // Style Getters for Toolbar
   bool get isSelectionBold => _hasStyle((s) => s.bold == true);
   bool get isSelectionItalic => _hasStyle((s) => s.italic == true);

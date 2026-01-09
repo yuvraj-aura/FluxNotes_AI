@@ -149,7 +149,7 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
 
       // Basic text sync
       _titleRichController.text = note.title;
-      // TODO: Load title metadata if available
+      _titleRichController.setMetadata(note.titleMetadata);
     }
 
     final currentBlockIds = note.blocks.map((b) => b.id).toSet();
@@ -375,9 +375,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                     final controller = _blockRichControllers[_focusedBlockId];
 
                     return Container(
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         color: AppTheme.cardDark,
-                        border: const Border(
+                        border: Border(
                           top: BorderSide(color: Colors.white12, width: 0.5),
                         ),
                       ),
@@ -403,9 +403,9 @@ class _EditorScreenState extends ConsumerState<EditorScreen> {
                 ] else if (_titleFocusNode.hasFocus) ...[
                   // Show Toolbar for Title
                   Container(
-                    decoration: BoxDecoration(
+                    decoration: const BoxDecoration(
                       color: AppTheme.cardDark,
-                      border: const Border(
+                      border: Border(
                         top: BorderSide(color: Colors.white12, width: 0.5),
                       ),
                     ),

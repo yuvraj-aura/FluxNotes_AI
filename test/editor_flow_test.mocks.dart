@@ -146,4 +146,33 @@ class MockNoteRepository extends _i1.Mock implements _i4.NoteRepository {
         returnValue: _i5.Future<void>.value(),
         returnValueForMissingStub: _i5.Future<void>.value(),
       ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> deleteAllNotes() => (super.noSuchMethod(
+        Invocation.method(
+          #deleteAllNotes,
+          [],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<void> saveNotes(List<_i3.Note>? notes) => (super.noSuchMethod(
+        Invocation.method(
+          #saveNotes,
+          [notes],
+        ),
+        returnValue: _i5.Future<void>.value(),
+        returnValueForMissingStub: _i5.Future<void>.value(),
+      ) as _i5.Future<void>);
+
+  @override
+  _i5.Future<List<_i3.Note>> getAllNotesList() => (super.noSuchMethod(
+        Invocation.method(
+          #getAllNotesList,
+          [],
+        ),
+        returnValue: _i5.Future<List<_i3.Note>>.value(<_i3.Note>[]),
+      ) as _i5.Future<List<_i3.Note>>);
 }

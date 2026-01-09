@@ -287,10 +287,9 @@ class _BlockWidgetState extends State<BlockWidget> {
             children: [
               // Drag handle logic...
               if (widget.block.type == BlockType.bullet)
-                Padding(
-                  padding:
-                      const EdgeInsets.only(top: 8.0, right: 8.0, left: 4.0),
-                  child: const Icon(Icons.circle, size: 6, color: Colors.white),
+                const Padding(
+                  padding: EdgeInsets.only(top: 8.0, right: 8.0, left: 4.0),
+                  child: Icon(Icons.circle, size: 6, color: Colors.white),
                 )
               else
                 AnimatedOpacity(

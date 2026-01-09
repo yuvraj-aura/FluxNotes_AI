@@ -38,26 +38,26 @@ class AIService {
       'gemini-2.5-pro',
     ];
 
-    print(
+    debugPrint(
         '[AIService-v2] Validating key: ${apiKey.substring(0, min(5, apiKey.length))}...');
 
     for (final modelId in modelsToTry) {
       try {
-        print('[AIService] Attempting with model: $modelId');
+        debugPrint('[AIService] Attempting with model: $modelId');
         final model = GenerativeModel(model: modelId, apiKey: apiKey);
         final response = await model.generateContent([Content.text('Test')]);
 
         if (response.text != null) {
-          print('[AIService] Validation success with $modelId');
+          debugPrint('[AIService] Validation success with $modelId');
           return true;
         }
       } catch (e) {
-        print('[AIService] Failed with $modelId: $e');
+        debugPrint('[AIService] Failed with $modelId: $e');
         // Continue to next model
       }
     }
 
-    print('[AIService] All models failed validation.');
+    debugPrint('[AIService] All models failed validation.');
     return false;
   }
 
@@ -103,7 +103,7 @@ class AIService {
   Future<String> chatWithNotes(String userQuestion, List<Note> allNotes) async {
     // Web Mock: Return dummy response to prevent freezing/NoKeyException
     final apiKey = await _getApiKey(); // Will throw if missing
-    print(
+    debugPrint(
         '[AIService] chatWithNotes using key: ${apiKey.substring(0, min(5, apiKey.length))}...');
 
     try {

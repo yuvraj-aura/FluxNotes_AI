@@ -109,14 +109,14 @@ class NoteRepository {
 
   Future<Note?> getNote(int id) async {
     if (kIsWeb) {
-      print(
+      debugPrint(
           '[NoteRepo] getNote($id) for Web. Total notes: ${_webNotes.length}');
       try {
         final note = _webNotes.firstWhere((n) => n.id == id);
-        print('[NoteRepo] Found note: ${note.uuid}');
+        debugPrint('[NoteRepo] Found note: ${note.uuid}');
         return note;
       } catch (_) {
-        print('[NoteRepo] Note not found with id: $id');
+        debugPrint('[NoteRepo] Note not found with id: $id');
         return null;
       }
     }

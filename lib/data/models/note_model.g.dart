@@ -13,9 +13,9 @@ extension GetNoteCollection on Isar {
   IsarCollection<Note> get notes => this.collection();
 }
 
-final NoteSchema = CollectionSchema(
+const NoteSchema = CollectionSchema(
   name: r'Note',
-  id: int.parse("6284318083599466921"),
+  id: 6284318083599466921,
   properties: {
     r'blocks': PropertySchema(
       id: 0,
@@ -71,7 +71,7 @@ final NoteSchema = CollectionSchema(
   idName: r'id',
   indexes: {
     r'uuid': IndexSchema(
-      id: int.parse("2134397340427724972"),
+      id: 2134397340427724972,
       name: r'uuid',
       unique: true,
       replace: true,
@@ -84,7 +84,7 @@ final NoteSchema = CollectionSchema(
       ],
     ),
     r'title': IndexSchema(
-      id: int.parse("-7636685945352118059"),
+      id: -7636685945352118059,
       name: r'title',
       unique: false,
       replace: false,
@@ -97,7 +97,7 @@ final NoteSchema = CollectionSchema(
       ],
     ),
     r'createdAt': IndexSchema(
-      id: int.parse("-3433535483987302584"),
+      id: -3433535483987302584,
       name: r'createdAt',
       unique: false,
       replace: false,
@@ -110,7 +110,7 @@ final NoteSchema = CollectionSchema(
       ],
     ),
     r'updatedAt': IndexSchema(
-      id: int.parse("-6238191080293565125"),
+      id: -6238191080293565125,
       name: r'updatedAt',
       unique: false,
       replace: false,
@@ -123,7 +123,7 @@ final NoteSchema = CollectionSchema(
       ],
     ),
     r'tags': IndexSchema(
-      id: int.parse("4029205728550669204"),
+      id: 4029205728550669204,
       name: r'tags',
       unique: false,
       replace: false,
@@ -2164,9 +2164,9 @@ extension NoteQueryProperty on QueryBuilder<Note, Note, QQueryProperty> {
 // coverage:ignore-file
 // ignore_for_file: duplicate_ignore, non_constant_identifier_names, constant_identifier_names, invalid_use_of_protected_member, unnecessary_cast, prefer_const_constructors, lines_longer_than_80_chars, require_trailing_commas, inference_failure_on_function_invocation, unnecessary_parenthesis, unnecessary_raw_strings, unnecessary_null_checks, join_return_with_assignment, prefer_final_locals, avoid_js_rounded_ints, avoid_positional_boolean_parameters, always_specify_types
 
-final ContentBlockSchema = Schema(
+const ContentBlockSchema = Schema(
   name: r'ContentBlock',
-  id: int.parse("4517901226766659997"),
+  id: 4517901226766659997,
   properties: {
     r'backgroundColor': PropertySchema(
       id: 0,
