@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flux_notes/data/models/note_model.dart';
 import 'package:flux_notes/data/repositories/note_repository.dart';
@@ -18,6 +19,7 @@ enum SortOrder { updatedNewest, updatedOldest, createdNewest, titleAZ }
 
 final sortOrderProvider =
     StateProvider<SortOrder>((ref) => SortOrder.updatedNewest);
+final homeSearchQueryProvider = StateProvider<String>((ref) => '');
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -179,9 +181,10 @@ class HomeView extends ConsumerWidget {
             ),
             const SizedBox(height: 24),
             // Search Bar
-            GestureDetector(
-              onTap: onSearchTap,
-              child: const CustomSearchBar(),
+            CustomSearchBar(
+              onChanged: (val) {
+                ref.read(homeSearchQueryProvider.notifier).state = val;
+              },
             ),
             const SizedBox(height: 24),
             // Notes List
@@ -190,7 +193,37 @@ class HomeView extends ConsumerWidget {
                 loading: () => const Center(child: CircularProgressIndicator()),
                 error: (err, stack) => Center(child: Text('Error: $err')),
                 data: (notes) {
-                  if (notes.isEmpty) {
+                  final sortOrder = ref.watch(sortOrderProvider);
+                  final searchQuery =
+                      ref.watch(homeSearchQueryProvider).toLowerCase();
+
+                  // Filter first
+                  final filteredNotes = notes.where((n) {
+                    if (searchQuery.isEmpty) return true;
+                    return n.title.toLowerCase().contains(searchQuery) ||
+                        n.blocks.any((b) =>
+                            b.content.toLowerCase().contains(searchQuery)) ||
+                        n.tags
+                            .any((t) => t.toLowerCase().contains(searchQuery));
+                  }).toList();
+
+                  if (filteredNotes.isEmpty) {
+                    if (notes.isNotEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.search_off,
+                                size: 48, color: Colors.white.withOpacity(0.2)),
+                            const SizedBox(height: 16),
+                            Text(
+                              'No matching notes found',
+                              style: GoogleFonts.inter(color: Colors.white38),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
                     return Center(
                       child: Text(
                         'No notes yet. Create one!',
@@ -198,10 +231,9 @@ class HomeView extends ConsumerWidget {
                       ),
                     );
                   }
-                  final sortOrder = ref.watch(sortOrderProvider);
-                  // Create a modifiable copy to sort
-                  final sortedNotes = List<Note>.from(notes);
 
+                  // Sort second
+                  final sortedNotes = List<Note>.from(filteredNotes);
                   switch (sortOrder) {
                     case SortOrder.updatedNewest:
                       sortedNotes
@@ -222,29 +254,43 @@ class HomeView extends ConsumerWidget {
                       break;
                   }
 
-                  return MasonryGridView.count(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 16,
-                    crossAxisSpacing: 16,
-                    itemCount: sortedNotes.length,
-                    itemBuilder: (context, index) {
-                      final note = sortedNotes[index];
-                      return NoteCard(
-                        title: note.title.isEmpty ? 'Untitled' : note.title,
-                        preview: _buildPreviewText(note),
-                        date: '${note.updatedAt.day}/${note.updatedAt.month}',
-                        tags: note.tags,
-                        hasBlueDot: note.isPinned,
-                        onTap: () {
-                          Navigator.of(context).push(
-                            MaterialPageRoute(
-                              builder: (context) =>
-                                  EditorScreen(noteId: note.id),
+                  return AnimationLimiter(
+                    child: MasonryGridView.count(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 16,
+                      crossAxisSpacing: 16,
+                      itemCount: sortedNotes.length,
+                      itemBuilder: (context, index) {
+                        final note = sortedNotes[index];
+                        return AnimationConfiguration.staggeredGrid(
+                          position: index,
+                          duration: const Duration(milliseconds: 375),
+                          columnCount: 2,
+                          child: ScaleAnimation(
+                            child: FadeInAnimation(
+                              child: NoteCard(
+                                title: note.title.isEmpty
+                                    ? 'Untitled'
+                                    : note.title,
+                                preview: _buildPreviewText(note),
+                                date:
+                                    '${note.updatedAt.day}/${note.updatedAt.month}',
+                                tags: note.tags,
+                                hasBlueDot: note.isPinned,
+                                onTap: () {
+                                  Navigator.of(context).push(
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          EditorScreen(noteId: note.id),
+                                    ),
+                                  );
+                                },
+                              ),
                             ),
-                          );
-                        },
-                      );
-                    },
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
               ),

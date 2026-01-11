@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:flux_notes/data/repositories/note_repository.dart';
 import 'package:flux_notes/theme/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+final tagsSearchQueryProvider = StateProvider<String>((ref) => '');
 
 class TagsScreen extends ConsumerWidget {
   const TagsScreen({super.key});
@@ -57,8 +60,11 @@ class TagsScreen extends ConsumerWidget {
                     ),
                     Expanded(
                       child: TextField(
-                        enabled:
-                            false, // Disabled until search logic implementation
+                        enabled: true,
+                        onChanged: (val) {
+                          ref.read(tagsSearchQueryProvider.notifier).state =
+                              val;
+                        },
                         decoration: InputDecoration(
                           hintText: 'Search tags...',
                           hintStyle:
@@ -89,13 +95,28 @@ class TagsScreen extends ConsumerWidget {
                 data: (notes) {
                   // Aggregate tags
                   final Map<String, int> tagCounts = {};
+                  final searchQuery =
+                      ref.watch(tagsSearchQueryProvider).toLowerCase();
+
                   for (final note in notes) {
                     for (final tag in note.tags) {
+                      if (searchQuery.isNotEmpty &&
+                          !tag.toLowerCase().contains(searchQuery)) {
+                        continue;
+                      }
                       tagCounts[tag] = (tagCounts[tag] ?? 0) + 1;
                     }
                   }
 
                   if (tagCounts.isEmpty) {
+                    if (searchQuery.isNotEmpty && notes.isNotEmpty) {
+                      return Center(
+                        child: Text(
+                          'No tags match "$searchQuery"',
+                          style: GoogleFonts.inter(color: Colors.grey),
+                        ),
+                      );
+                    }
                     return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -116,19 +137,30 @@ class TagsScreen extends ConsumerWidget {
                     ..sort((a, b) =>
                         b.value.compareTo(a.value)); // Sort by count desc
 
-                  return MasonryGridView.count(
-                    crossAxisCount: 2,
-                    mainAxisSpacing: 12,
-                    crossAxisSpacing: 12,
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: sortedTags.length,
-                    itemBuilder: (context, index) {
-                      final tagEntry = sortedTags[index];
-                      return _TagCard(
-                        tagName: tagEntry.key,
-                        count: tagEntry.value,
-                      );
-                    },
+                  return AnimationLimiter(
+                    child: MasonryGridView.count(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 12,
+                      crossAxisSpacing: 12,
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
+                      itemCount: sortedTags.length,
+                      itemBuilder: (context, index) {
+                        final tagEntry = sortedTags[index];
+                        return AnimationConfiguration.staggeredGrid(
+                          position: index,
+                          duration: const Duration(milliseconds: 375),
+                          columnCount: 2,
+                          child: ScaleAnimation(
+                            child: FadeInAnimation(
+                              child: _TagCard(
+                                tagName: tagEntry.key,
+                                count: tagEntry.value,
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
                   );
                 },
               ),

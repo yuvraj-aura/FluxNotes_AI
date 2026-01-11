@@ -351,19 +351,19 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 items: const [
                   DropdownMenuItem(
                     value: 'gemini-3-flash-preview',
-                    child: Text('Gemini 3.0 Flash (Latest & Fast)'),
+                    child: Text('Gemini 3.0 Flash'),
                   ),
                   DropdownMenuItem(
                     value: 'gemini-3-pro-preview',
-                    child: Text('Gemini 3.0 Pro (Most Intelligent)'),
+                    child: Text('Gemini 3.0 Pro'),
                   ),
                   DropdownMenuItem(
                     value: 'gemini-2.5-flash',
-                    child: Text('Gemini 2.5 Flash (Stable)'),
+                    child: Text('Gemini 2.5 Flash'),
                   ),
                   DropdownMenuItem(
                     value: 'gemini-2.5-pro',
-                    child: Text('Gemini 2.5 Pro (Reasoning)'),
+                    child: Text('Gemini 2.5 Pro'),
                   ),
                 ],
                 onChanged: (val) {
