@@ -159,6 +159,19 @@ class NoteRepository {
     });
   }
 
+  Future<void> deleteNotes(List<int> ids) async {
+    if (kIsWeb) {
+      _webNotes.removeWhere((n) => ids.contains(n.id));
+      _webStreamController.add(List.from(_webNotes));
+      return;
+    }
+
+    final isar = await db;
+    await isar.writeTxn(() async {
+      await isar.notes.deleteAll(ids);
+    });
+  }
+
   Future<void> checkAndSeedDemoNote() async {
     if (kIsWeb) {
       if (_webNotes.isEmpty) {

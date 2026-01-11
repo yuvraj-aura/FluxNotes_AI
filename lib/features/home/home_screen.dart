@@ -33,15 +33,94 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   late final List<Widget> _screens;
 
+  // Selection Mode State
+  bool _isSelectionMode = false;
+  final Set<int> _selectedNoteIds = {};
+
+  void _toggleSelectionMode(int noteId) {
+    setState(() {
+      _isSelectionMode = true;
+      _selectedNoteIds.add(noteId);
+    });
+  }
+
+  void _toggleSelection(int noteId) {
+    setState(() {
+      if (_selectedNoteIds.contains(noteId)) {
+        _selectedNoteIds.remove(noteId);
+        if (_selectedNoteIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedNoteIds.add(noteId);
+      }
+    });
+  }
+
+  void _exitSelectionMode() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedNoteIds.clear();
+    });
+  }
+
+  Future<void> _deleteSelectedNotes() async {
+    if (_selectedNoteIds.isEmpty) return;
+
+    final count = _selectedNoteIds.length;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Delete Notes?',
+            style: GoogleFonts.inter(
+                color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Are you sure you want to delete $count selected note${count > 1 ? 's' : ''}? This action cannot be undone.',
+          style: GoogleFonts.inter(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child:
+                Text('Cancel', style: GoogleFonts.inter(color: Colors.white60)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Delete',
+                style: GoogleFonts.inter(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true) {
+      await ref
+          .read(noteRepositoryProvider)
+          .deleteNotes(_selectedNoteIds.toList());
+      _exitSelectionMode();
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _screens = [
-      HomeView(onSearchTap: () {
-        setState(() {
-          _currentIndex = 1;
-        });
-      }),
+      HomeView(
+        onSearchTap: () {
+          setState(() {
+            _currentIndex = 1;
+          });
+        },
+        isSelectionMode: _isSelectionMode,
+        selectedNoteIds: _selectedNoteIds,
+        onToggleSelection: _toggleSelection,
+        onLongPressNote: _toggleSelectionMode,
+        onExitSelectionMode: _exitSelectionMode,
+        onDeleteSelected: _deleteSelectedNotes,
+      ),
       const SearchScreen(),
       const TagsScreen(),
       const SettingsScreen(),
@@ -112,8 +191,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
 class HomeView extends ConsumerWidget {
   final VoidCallback? onSearchTap;
+  final VoidCallback? onDeleteSelected; // New
+  final bool isSelectionMode; // New
+  final Set<int> selectedNoteIds; // New
+  final Function(int)? onToggleSelection; // New
+  final Function(int)? onLongPressNote; // New
+  final VoidCallback? onExitSelectionMode; // New
 
-  const HomeView({super.key, this.onSearchTap});
+  const HomeView({
+    super.key,
+    this.onSearchTap,
+    this.onDeleteSelected,
+    this.isSelectionMode = false,
+    this.selectedNoteIds = const {},
+    this.onToggleSelection,
+    this.onLongPressNote,
+    this.onExitSelectionMode,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -127,58 +221,87 @@ class HomeView extends ConsumerWidget {
           children: [
             const SizedBox(height: 20),
             // Custom Approx AppBar
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'FluxNotes',
-                      style: AppTheme.darkTheme.appBarTheme.titleTextStyle,
-                    ),
-                  ],
-                ),
-                // Sort Button acting as a Popup/Dropdown
-                Container(
-                  width: 40,
-                  height: 40,
-                  decoration: const BoxDecoration(
-                    color: AppTheme.cardDark,
-                    shape: BoxShape.circle,
-                  ),
-                  child: PopupMenuButton<SortOrder>(
-                    icon: const Icon(Icons.sort, color: Colors.white, size: 20),
-                    color: AppTheme.cardDark,
-                    onSelected: (value) {
-                      ref.read(sortOrderProvider.notifier).state = value;
-                    },
-                    itemBuilder: (context) => [
-                      const PopupMenuItem(
-                        value: SortOrder.updatedNewest,
-                        child: Text("Updated: Newest",
-                            style: TextStyle(color: Colors.white)),
+            if (isSelectionMode)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      IconButton(
+                        icon: const Icon(Icons.close, color: Colors.white),
+                        onPressed: onExitSelectionMode,
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
                       ),
-                      const PopupMenuItem(
-                        value: SortOrder.updatedOldest,
-                        child: Text("Updated: Oldest",
-                            style: TextStyle(color: Colors.white)),
-                      ),
-                      const PopupMenuItem(
-                        value: SortOrder.createdNewest,
-                        child: Text("Created: Newest",
-                            style: TextStyle(color: Colors.white)),
-                      ),
-                      const PopupMenuItem(
-                        value: SortOrder.titleAZ,
-                        child: Text("Title: A-Z",
-                            style: TextStyle(color: Colors.white)),
+                      const SizedBox(width: 16),
+                      Text(
+                        '${selectedNoteIds.length} Selected',
+                        style: AppTheme.darkTheme.appBarTheme.titleTextStyle
+                            ?.copyWith(fontSize: 20),
                       ),
                     ],
                   ),
-                ),
-              ],
-            ),
+                  IconButton(
+                    icon: const Icon(Icons.delete,
+                        color: Colors.redAccent, size: 28),
+                    onPressed: onDeleteSelected,
+                  ),
+                ],
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'FluxNotes',
+                        style: AppTheme.darkTheme.appBarTheme.titleTextStyle,
+                      ),
+                    ],
+                  ),
+                  // Sort Button acting as a Popup/Dropdown
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: AppTheme.cardDark,
+                      shape: BoxShape.circle,
+                    ),
+                    child: PopupMenuButton<SortOrder>(
+                      icon:
+                          const Icon(Icons.sort, color: Colors.white, size: 20),
+                      color: AppTheme.cardDark,
+                      onSelected: (value) {
+                        ref.read(sortOrderProvider.notifier).state = value;
+                      },
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(
+                          value: SortOrder.updatedNewest,
+                          child: Text("Updated: Newest",
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                        const PopupMenuItem(
+                          value: SortOrder.updatedOldest,
+                          child: Text("Updated: Oldest",
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                        const PopupMenuItem(
+                          value: SortOrder.createdNewest,
+                          child: Text("Created: Newest",
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                        const PopupMenuItem(
+                          value: SortOrder.titleAZ,
+                          child: Text("Title: A-Z",
+                              style: TextStyle(color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             const SizedBox(height: 24),
             // Search Bar
             CustomSearchBar(
@@ -277,16 +400,26 @@ class HomeView extends ConsumerWidget {
                                     '${note.updatedAt.day}/${note.updatedAt.month}',
                                 tags: note.tags,
                                 hasBlueDot: note.isPinned,
+                                isSelected:
+                                    selectedNoteIds.contains(note.id), // New
                                 onTap: () {
-                                  Navigator.of(context).push(
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          EditorScreen(noteId: note.id),
-                                    ),
-                                  );
+                                  if (isSelectionMode) {
+                                    onToggleSelection?.call(note.id);
+                                  } else {
+                                    Navigator.of(context).push(
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            EditorScreen(noteId: note.id),
+                                      ),
+                                    );
+                                  }
                                 },
                                 onLongPress: () {
-                                  _showDeleteConfirmation(context, ref, note);
+                                  if (isSelectionMode) {
+                                    onToggleSelection?.call(note.id);
+                                  } else {
+                                    onLongPressNote?.call(note.id);
+                                  }
                                 },
                               ),
                             ),
@@ -323,38 +456,5 @@ class HomeView extends ConsumerWidget {
     }
 
     return textBlocks.map((b) => b.content).join('\n');
-  }
-
-  void _showDeleteConfirmation(BuildContext context, WidgetRef ref, Note note) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppTheme.cardDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Text('Delete Note?',
-            style: GoogleFonts.inter(
-                color: Colors.white, fontWeight: FontWeight.bold)),
-        content: Text(
-          'Are you sure you want to delete "${note.title.isNotEmpty ? note.title : 'Untitled'}"? This action cannot be undone.',
-          style: GoogleFonts.inter(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child:
-                Text('Cancel', style: GoogleFonts.inter(color: Colors.white60)),
-          ),
-          TextButton(
-            onPressed: () async {
-              Navigator.of(context).pop();
-              await ref.read(noteRepositoryProvider).deleteNote(note.id);
-            },
-            child: Text('Delete',
-                style: GoogleFonts.inter(
-                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    );
   }
 }

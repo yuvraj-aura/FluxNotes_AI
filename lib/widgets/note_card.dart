@@ -10,6 +10,7 @@ class NoteCard extends StatelessWidget {
   final bool hasBlueDot;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+  final bool isSelected;
 
   const NoteCard({
     super.key,
@@ -20,6 +21,7 @@ class NoteCard extends StatelessWidget {
     this.hasBlueDot = false,
     this.onTap,
     this.onLongPress,
+    this.isSelected = false,
   });
 
   @override
@@ -30,9 +32,15 @@ class NoteCard extends StatelessWidget {
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(
-          color: AppTheme.cardDark,
+          color: isSelected
+              ? AppTheme.primaryBlue.withValues(alpha: 0.1)
+              : AppTheme.cardDark,
           borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
+          border: Border.all(
+              color: isSelected
+                  ? AppTheme.primaryBlue
+                  : Colors.white.withValues(alpha: 0.05),
+              width: isSelected ? 2 : 1),
         ),
         padding: const EdgeInsets.all(20),
         child: Column(
