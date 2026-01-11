@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flux_notes/core/services/ai_service.dart';
@@ -5,7 +6,6 @@ import 'package:flux_notes/data/models/note_model.dart';
 import 'package:flux_notes/data/repositories/note_repository.dart';
 import 'package:flux_notes/features/editor/editor_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:mesh_gradient/mesh_gradient.dart'; // Import mesh_gradient
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -18,7 +18,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
 
-  // State
   String _searchQuery = '';
   String? _aiResponse;
   bool _isAiLoading = false;
@@ -66,93 +65,181 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     final notesAsync = ref.watch(notesStreamProvider);
     final isSearchActive = _searchQuery.isNotEmpty;
 
+    // Theme Colors (Hexagon Hive Palette)
+    const primaryBlue = Color(0xFF3C3CF6);
+    const bgDark = Color(0xFF0B1121);
+
     return Scaffold(
       resizeToAvoidBottomInset: false,
-      extendBodyBehindAppBar: true,
-      backgroundColor: Colors.black,
+      backgroundColor: bgDark,
       body: Stack(
         children: [
-          // 1. Layer 0: Living Aurora Mesh Background
-          SizedBox.expand(
-            child: AnimatedMeshGradient(
-              colors: const [
-                Color(0xFF0F172A), // Deep Slate
-                Color(0xFF7C3AED), // Electric Violet
-                Color(0xFF06B6D4), // Neon Cyan
-                Color(0xFF000000), // Void Black
-              ],
-              options: AnimatedMeshGradientOptions(
-                speed: 2,
-                frequency: 3,
-                amplitude: 1,
-                grain: 0.2,
+          // 1. Static Hexagon Pattern Background
+          Positioned.fill(
+            child: CustomPaint(
+              painter: HexagonPatternPainter(
+                color: const Color(0xFF161B2E), // Subtle hexagon color
               ),
             ),
           ),
 
-          // 2. Layer 1: Dimmer Overlay
-          AnimatedOpacity(
-            duration: const Duration(milliseconds: 500),
-            opacity: isSearchActive ? 0.7 : 0.0,
-            child: Container(color: Colors.black),
+          // 2. Vignette Overlay (Radial Gradient)
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: RadialGradient(
+                  center: Alignment.center,
+                  radius: 1.2, // Spread it out
+                  colors: [
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.8),
+                  ],
+                  stops: const [0.2, 1.0],
+                ),
+              ),
+            ),
           ),
 
-          // 3. Layer 2: Main Content
+          // 3. Glowing Dots (Simulated Stars/Nodes)
+          const Positioned(
+            top: 150,
+            left: 80,
+            child: GlowingDot(color: primaryBlue, opacity: 0.4),
+          ),
+          const Positioned(
+            top: 300,
+            right: 40,
+            child: GlowingDot(color: primaryBlue, opacity: 0.3),
+          ),
+          const Positioned(
+            bottom: 200,
+            left: 120,
+            child: GlowingDot(color: primaryBlue, opacity: 0.2),
+          ),
+          const Positioned(
+            top: 500,
+            right: 100,
+            child: GlowingDot(color: primaryBlue, opacity: 0.4),
+          ),
+
+          // 4. Main Content Layer
           SafeArea(
-            child: notesAsync.when(
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (err, stack) => Center(
-                  child: Text('Error: $err',
-                      style: const TextStyle(color: Colors.white))),
-              data: (allNotes) {
-                return Stack(
-                  children: [
-                    // A. Center Logo (Inactive State)
-                    AnimatedPositioned(
-                      duration: const Duration(milliseconds: 600),
-                      curve: Curves.easeOutCubic,
-                      top: isSearchActive
-                          ? -200
-                          : MediaQuery.of(context).size.height / 2 -
-                              100, // Move up and out
-                      left: 0,
-                      right: 0,
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 400),
-                        opacity: isSearchActive ? 0.0 : 1.0,
-                        child: _buildBreathingLogo(),
+            child: Column(
+              children: [
+                // Top App Bar
+                Padding(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.hub, color: primaryBlue, size: 28),
+                      Expanded(
+                        child: Text(
+                          "Flux Intelligence",
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.spaceGrotesk(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                            letterSpacing: -0.5,
+                          ),
+                        ),
                       ),
-                    ),
-
-                    // B. Results Container (Active State)
-                    AnimatedPositioned(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.easeOutCubic,
-                      top: isSearchActive
-                          ? 80
-                          : MediaQuery.of(context)
-                              .size
-                              .height, // Slide up from bottom
-                      left: 0,
-                      right: 0,
-                      bottom: 0,
-                      child: AnimatedOpacity(
-                        duration: const Duration(milliseconds: 500),
-                        opacity: isSearchActive ? 1.0 : 0.0,
-                        child: _buildResultsArea(allNotes),
+                      Container(
+                        width: 40,
+                        height: 40,
+                        decoration: BoxDecoration(
+                          color: primaryBlue.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                              color: primaryBlue.withValues(alpha: 0.2)),
+                        ),
+                        child: const Icon(Icons.memory,
+                            color: primaryBlue, size: 20),
                       ),
-                    ),
+                    ],
+                  ),
+                ),
 
-                    // C. Floating Header (Always visible)
-                    Positioned(
-                      top: 16,
-                      left: 16,
-                      right: 16,
-                      child: _buildGlassSearchBar(allNotes, isSearchActive),
-                    ),
-                  ],
-                );
-              },
+                // Expanded Search Area / Content
+                Expanded(
+                  child: notesAsync.when(
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (err, stack) => Center(
+                        child: Text('Error: $err',
+                            style: const TextStyle(color: Colors.white))),
+                    data: (allNotes) {
+                      return Stack(
+                        children: [
+                          // A. Center Branding (Inactive State)
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 600),
+                            curve: Curves.easeOutCubic,
+                            top: isSearchActive
+                                ? -200
+                                : MediaQuery.of(context).size.height * 0.15,
+                            left: 0,
+                            right: 0,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 400),
+                              opacity: isSearchActive ? 0.0 : 1.0,
+                              child: _buildHiveBranding(primaryBlue),
+                            ),
+                          ),
+
+                          // B. Search Bar Container (Moves up when active)
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.easeOutCubic,
+                            top: isSearchActive
+                                ? 20
+                                : MediaQuery.of(context).size.height * 0.35,
+                            left: 24,
+                            right: 24,
+                            child: Column(
+                              children: [
+                                _buildGlassSearchBar(
+                                    allNotes, isSearchActive, primaryBlue),
+                                // System Suggestions (only when inactive)
+                                AnimatedOpacity(
+                                  duration: const Duration(milliseconds: 300),
+                                  opacity: isSearchActive ? 0.0 : 1.0,
+                                  child: isSearchActive
+                                      ? const SizedBox.shrink()
+                                      : Padding(
+                                          padding:
+                                              const EdgeInsets.only(top: 32),
+                                          child: _buildSystemSuggestions(
+                                              allNotes, primaryBlue),
+                                        ),
+                                ),
+                              ],
+                            ),
+                          ),
+
+                          // C. Results Area (Slides up)
+                          AnimatedPositioned(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.easeOutCubic,
+                            top: isSearchActive
+                                ? 100
+                                : MediaQuery.of(context).size.height,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            child: AnimatedOpacity(
+                              duration: const Duration(milliseconds: 500),
+                              opacity: isSearchActive ? 1.0 : 0.0,
+                              child: _buildResultsArea(allNotes, primaryBlue),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -162,80 +249,62 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
 
   // --- Widgets ---
 
-  Widget _buildBreathingLogo() {
+  Widget _buildHiveBranding(Color primary) {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Using a scale animation wrapper would be ideal, but for now simple structure
-        // Enhancing with a simple TweenAnimationBuilder for "Breathing"
-        TweenAnimationBuilder(
-          tween: Tween<double>(begin: 0.95, end: 1.05),
-          duration: const Duration(seconds: 4),
-          curve: Curves.easeInOut,
-          builder: (context, scale, child) {
-            return Transform.scale(
-              scale: scale,
-              child: Container(
-                width: 112, // w-28
-                height: 112, // h-28
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border:
-                      Border.all(color: Colors.white.withValues(alpha: 0.1)),
-                  color: Colors.white
-                      .withValues(alpha: 0.1), // glass-panel style attempt
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.white.withValues(alpha: 0.05),
-                      blurRadius: 30,
-                      spreadRadius: 10,
-                    )
-                  ],
-                ),
-                child: const Center(
-                  child: Icon(Icons.blur_on, size: 48, color: Colors.white70),
-                ),
-              ),
-            );
-          },
-          onEnd:
-              () {}, // Infinite loop requires stateful explicit animation, simplified here
+        Container(
+          width: 80,
+          height: 80,
+          decoration: BoxDecoration(
+            color: primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: primary.withValues(alpha: 0.3)),
+            boxShadow: [
+              BoxShadow(
+                color: primary.withValues(alpha: 0.15),
+                blurRadius: 30,
+                spreadRadius: 0,
+              )
+            ],
+          ),
+          child: Icon(Icons.rocket_launch, color: primary, size: 48),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 16),
         Text(
-          "FLUX",
-          style: GoogleFonts.inter(
-            fontSize: 30,
-            fontWeight: FontWeight.w200,
-            letterSpacing: 8, // tracking-[0.5em]
+          "The Hive",
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.5,
             color: Colors.white.withValues(alpha: 0.9),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
-          "INTELLIGENCE",
-          style: GoogleFonts.inter(
-            fontSize: 11,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 4, // tracking-[0.3em]
-            color: Colors.white38,
+          "FluxNotes AI Engine Active",
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withValues(alpha: 0.4),
           ),
         ),
       ],
     );
   }
 
-  Widget _buildGlassSearchBar(List<Note> allNotes, bool isActive) {
+  Widget _buildGlassSearchBar(
+      List<Note> allNotes, bool isActive, Color primary) {
     return Container(
-      height: 56, // h-14
-      padding: const EdgeInsets.symmetric(horizontal: 16),
+      height: 56,
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1), // glass-panel bg-white/10
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        color: const Color(0xFF282839).withValues(alpha: 0.4), // glass-effect
+        borderRadius: BorderRadius.circular(16), // rounded-xl
+        border:
+            Border.all(color: primary.withValues(alpha: 0.2)), // border color
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.1),
+            color: Colors.black.withValues(alpha: 0.2),
             blurRadius: 20,
             offset: const Offset(0, 10),
           )
@@ -243,20 +312,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
       ),
       child: Row(
         children: [
-          Icon(Icons.search,
-              color: Colors.white.withValues(alpha: 0.5), size: 22),
-          const SizedBox(width: 12),
+          SizedBox(
+            width: 48,
+            child: Center(
+              child:
+                  Icon(Icons.search, color: primary, size: 24), // text-primary
+            ),
+          ),
           Expanded(
             child: TextField(
               controller: _searchController,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.spaceGrotesk(
                   color: Colors.white,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w300),
+                  fontSize: 18,
+                  fontWeight: FontWeight.normal),
               decoration: InputDecoration(
-                hintText: "Search Flux Intelligence...",
-                hintStyle: GoogleFonts.inter(
-                    color: Colors.white.withValues(alpha: 0.4)),
+                hintText: "Query the Hive...",
+                hintStyle: GoogleFonts.spaceGrotesk(
+                    color: Colors.white.withValues(alpha: 0.3)),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: EdgeInsets.zero,
@@ -275,32 +348,92 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               },
             ),
           ),
-          if (isActive)
-            IconButton(
-              icon: Icon(Icons.close,
-                  color: Colors.white.withValues(alpha: 0.5), size: 20),
-              onPressed: () {
-                _searchController.clear();
-                setState(() {
-                  _searchQuery = '';
-                  _aiResponse = null;
-                });
-                FocusScope.of(context).unfocus();
-              },
-            )
-          else
-            Icon(Icons.mic,
-                color: Colors.white.withValues(alpha: 0.6), size: 20),
+          SizedBox(
+            width: 48,
+            child: isActive
+                ? IconButton(
+                    icon: Icon(Icons.close,
+                        color: Colors.white.withValues(alpha: 0.4)),
+                    onPressed: () {
+                      _searchController.clear();
+                      setState(() {
+                        _searchQuery = '';
+                        _aiResponse = null;
+                      });
+                      FocusScope.of(context).unfocus();
+                    },
+                  )
+                : Icon(Icons.mic, color: Colors.white.withValues(alpha: 0.4)),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildResultsArea(List<Note> allNotes) {
-    // Combine filtered notes + AI interaction
-    // If AI is loading or has response, show that.
-    // Else show note results.
+  Widget _buildSystemSuggestions(List<Note> allNotes, Color primary) {
+    return Column(
+      children: [
+        Text(
+          "SYSTEM SUGGESTIONS",
+          style: GoogleFonts.spaceGrotesk(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 2.0,
+            color: primary.withValues(alpha: 0.6),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          alignment: WrapAlignment.center,
+          children: [
+            _buildSuggestionChip("Neural Networks", Icons.bolt, primary,
+                () => _askAI(allNotes, "Explain Neural Networks")),
+            _buildSuggestionChip("Project Orion", Icons.folder_open, primary,
+                () => _askAI(allNotes, "Status of Project Orion")),
+            _buildSuggestionChip("Weekly Sync", Icons.schedule, primary,
+                () => _askAI(allNotes, "Summarize Weekly Sync")),
+            _buildSuggestionChip("Code Snippets", Icons.terminal, primary,
+                () => _askAI(allNotes, "Show me recent code snippets")),
+          ],
+        ),
+      ],
+    );
+  }
 
+  Widget _buildSuggestionChip(
+      String label, IconData icon, Color primary, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 36,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.05),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, color: primary, size: 18),
+            const SizedBox(width: 8),
+            Text(
+              label,
+              style: GoogleFonts.spaceGrotesk(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: Colors.white.withValues(alpha: 0.8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildResultsArea(List<Note> allNotes, Color primary) {
     final results = allNotes.where((n) {
       final q = _searchQuery.toLowerCase();
       return n.title.toLowerCase().contains(q) ||
@@ -312,8 +445,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         // AI Response Area
         if (_isAiLoading || _aiResponse != null)
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-            child: _buildAiResponseCard(),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+            child: _buildAiResponseCard(primary),
           ),
 
         // Results List
@@ -322,16 +455,16 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               ? Center(
                   child: Text(
                     "No signals found.",
-                    style: GoogleFonts.inter(color: Colors.white38),
+                    style: GoogleFonts.spaceGrotesk(color: Colors.white38),
                   ),
                 )
               : ListView.builder(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                   itemCount: results.length,
                   itemBuilder: (context, index) {
                     final note = results[index];
-                    return _buildGlassResultCard(note);
+                    return _buildHiveResultCard(note, primary);
                   },
                 ),
         ),
@@ -339,22 +472,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     );
   }
 
-  Widget _buildGlassResultCard(Note note) {
-    // HTML ref: .glass-panel p-6 rounded-[2rem] active:scale-[0.98]
-    // Content: Date/Type label, Title, Preview text
+  Widget _buildHiveResultCard(Note note, Color primary) {
     final preview = note.blocks.map((b) => b.content).join(" ");
 
     return Container(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(32), // rounded-[2rem]
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        color: const Color(0xFF282839).withValues(alpha: 0.4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.05)),
       ),
       child: Material(
         color: Colors.transparent,
         child: InkWell(
-          borderRadius: BorderRadius.circular(32),
+          borderRadius: BorderRadius.circular(16),
           onTap: () {
             Navigator.of(context).push(
               MaterialPageRoute(
@@ -362,7 +493,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
             );
           },
           child: Padding(
-            padding: const EdgeInsets.all(24),
+            padding: const EdgeInsets.all(20),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -370,24 +501,24 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      "NOTE • ${note.updatedAt.day}/${note.updatedAt.month}",
-                      style: GoogleFonts.inter(
+                      "NOTE NODE",
+                      style: GoogleFonts.spaceGrotesk(
                         fontSize: 10,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 1.5, // tracking-widest
-                        color: Colors.white.withValues(alpha: 0.4),
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        color: Colors.white.withValues(alpha: 0.3),
                       ),
                     ),
                     Icon(Icons.north_east,
-                        size: 18, color: Colors.white.withValues(alpha: 0.3)),
+                        size: 16, color: Colors.white.withValues(alpha: 0.3)),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 8),
                 Text(
                   note.title.isNotEmpty ? note.title : "Untitled",
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
                     color: Colors.white.withValues(alpha: 0.9),
                   ),
                 ),
@@ -396,11 +527,10 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   preview,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w300,
-                    height: 1.5, // leading-relaxed
-                    color: Colors.white.withValues(alpha: 0.6),
+                  style: GoogleFonts.spaceGrotesk(
+                    fontSize: 13,
+                    fontWeight: FontWeight.normal,
+                    color: Colors.white.withValues(alpha: 0.5),
                   ),
                 ),
               ],
@@ -411,21 +541,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
     );
   }
 
-  Widget _buildAiResponseCard() {
+  Widget _buildAiResponseCard(Color primary) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(24),
+        color: const Color(0xFF282839).withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-            color: const Color(0xFF3B82F6)
-                .withValues(alpha: 0.3)), // Glowing Border
+            color: primary.withValues(alpha: 0.3)), // Glowing Primary Border
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF3B82F6).withValues(alpha: 0.15),
+            color: primary.withValues(alpha: 0.1),
             blurRadius: 20,
-            spreadRadius: 4,
+            spreadRadius: 2,
           )
         ],
       ),
@@ -435,15 +564,14 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         children: [
           Row(
             children: [
-              const Icon(Icons.auto_awesome,
-                  color: Color(0xFF3B82F6), size: 18),
+              Icon(Icons.auto_awesome, color: primary, size: 18),
               const SizedBox(width: 8),
               Text(
-                "Flux Intelligence",
-                style: GoogleFonts.inter(
+                "HIVE MIND",
+                style: GoogleFonts.spaceGrotesk(
                   fontSize: 12,
                   fontWeight: FontWeight.bold,
-                  color: const Color(0xFF3B82F6),
+                  color: primary,
                   letterSpacing: 1.5,
                 ),
               ),
@@ -459,22 +587,109 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
           const SizedBox(height: 16),
           if (_isAiLoading)
             Center(
-                child: SizedBox(
-              height: 20,
-              width: 20,
-              child: CircularProgressIndicator(
-                  strokeWidth: 2, color: Colors.white70),
-            ))
+              child: SizedBox(
+                  height: 20,
+                  width: 20,
+                  child: CircularProgressIndicator(
+                      strokeWidth: 2, color: primary)),
+            )
           else
             Text(
               _aiResponse!,
-              style: GoogleFonts.inter(
+              style: GoogleFonts.spaceGrotesk(
                 color: Colors.white.withValues(alpha: 0.9),
                 fontSize: 14,
                 height: 1.6,
-                fontWeight: FontWeight.w300,
               ),
             ),
+        ],
+      ),
+    );
+  }
+}
+
+// --- Background Painter ---
+
+class HexagonPatternPainter extends CustomPainter {
+  final Color color;
+
+  HexagonPatternPainter({required this.color});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    // Implementing a simplified hexagon grid simulation using repeating circles/paths
+    // or just simplified geometry for 'hexagon-pattern'.
+    // A true mesh is expensive to draw via paths.
+    // simpler visual trick: Staggered dashes or dots.
+    // CSS uses linear gradients. We can try to replicate roughly.
+
+    final paint = Paint()
+      ..color = color
+      ..strokeWidth = 1.0
+      ..style = PaintingStyle.stroke;
+
+    // Hexagon width/height relationship
+    // Width = sqrt(3) * size
+    // Height = 2 * size
+    const double hexRadius = 24.0;
+    const double hexWidth = 1.732 * hexRadius; // ~41.5
+    const double hexHeight = 2.0 * hexRadius; // 48
+    const double vertDist = 0.75 * hexHeight; // 36
+
+    // We'll just draw points or small lines to hint the grid, keeping it low noise
+    // OR create a path.
+
+    for (double y = 0; y < size.height + hexHeight; y += vertDist) {
+      int row = (y / vertDist).floor();
+      bool isOddRow = row % 2 != 0;
+      double xOffset = isOddRow ? hexWidth / 2 : 0;
+
+      for (double x = xOffset; x < size.width + hexWidth; x += hexWidth) {
+        _drawHexagon(canvas, Offset(x, y), hexRadius, paint);
+      }
+    }
+  }
+
+  void _drawHexagon(Canvas canvas, Offset center, double radius, Paint paint) {
+    final path = Path();
+    for (int i = 0; i < 6; i++) {
+      double angle = (60 * i + 30) * math.pi / 180;
+      double x = center.dx + radius * math.cos(angle);
+      double y = center.dy + radius * math.sin(angle);
+      if (i == 0) {
+        path.moveTo(x, y);
+      } else {
+        path.lineTo(x, y);
+      }
+    }
+    path.close();
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class GlowingDot extends StatelessWidget {
+  final Color color;
+  final double opacity;
+
+  const GlowingDot({super.key, required this.color, required this.opacity});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 8,
+      height: 8,
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: opacity),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: opacity),
+            blurRadius: 15, // glow-dot: 0 0 15px 2px
+            spreadRadius: 2,
+          )
         ],
       ),
     );
