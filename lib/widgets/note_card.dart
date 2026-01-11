@@ -9,6 +9,7 @@ class NoteCard extends StatelessWidget {
   final List<String> tags;
   final bool hasBlueDot;
   final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   const NoteCard({
     super.key,
@@ -18,12 +19,14 @@ class NoteCard extends StatelessWidget {
     this.tags = const [],
     this.hasBlueDot = false,
     this.onTap,
+    this.onLongPress,
   });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
+      onLongPress: onLongPress,
       child: Container(
         margin: const EdgeInsets.only(bottom: 16),
         decoration: BoxDecoration(

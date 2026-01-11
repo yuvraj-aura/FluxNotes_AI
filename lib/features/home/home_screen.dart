@@ -285,6 +285,9 @@ class HomeView extends ConsumerWidget {
                                     ),
                                   );
                                 },
+                                onLongPress: () {
+                                  _showDeleteConfirmation(context, ref, note);
+                                },
                               ),
                             ),
                           ),
@@ -320,5 +323,38 @@ class HomeView extends ConsumerWidget {
     }
 
     return textBlocks.map((b) => b.content).join('\n');
+  }
+
+  void _showDeleteConfirmation(BuildContext context, WidgetRef ref, Note note) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: AppTheme.cardDark,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text('Delete Note?',
+            style: GoogleFonts.inter(
+                color: Colors.white, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Are you sure you want to delete "${note.title.isNotEmpty ? note.title : 'Untitled'}"? This action cannot be undone.',
+          style: GoogleFonts.inter(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child:
+                Text('Cancel', style: GoogleFonts.inter(color: Colors.white60)),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.of(context).pop();
+              await ref.read(noteRepositoryProvider).deleteNote(note.id);
+            },
+            child: Text('Delete',
+                style: GoogleFonts.inter(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
   }
 }

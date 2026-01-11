@@ -64,7 +64,6 @@ class _BlockWidgetState extends State<BlockWidget> {
     };
 
     widget.controller.addListener(_onTextChanged);
-    widget.focusNode.addListener(_onFocusChanged);
     _onTextChanged();
   }
 
@@ -225,19 +224,6 @@ class _BlockWidgetState extends State<BlockWidget> {
     return null;
   }
 
-  void _onFocusChanged() {
-    if (widget.focusNode.hasFocus && widget.controller.text.isEmpty) {
-      // Small delay to check if still focused and empty
-      Future.delayed(const Duration(milliseconds: 100), () {
-        if (mounted &&
-            widget.focusNode.hasFocus &&
-            widget.controller.text.isEmpty) {
-          _showStyleMenu();
-        }
-      });
-    }
-  }
-
   List<SlashMenuItem> get _allItems => [
         SlashMenuItem(
           icon: Icons.title,
@@ -260,19 +246,6 @@ class _BlockWidgetState extends State<BlockWidget> {
           type: BlockType.bullet,
           keywords: ['list', 'ul'], // explicit keywords
         ),
-        // Colors
-        SlashMenuItem(
-            icon: Icons.format_paint, label: 'Red', color: '0xFFFF5252'),
-        SlashMenuItem(
-            icon: Icons.format_paint, label: 'Orange', color: '0xFFFFAB40'),
-        SlashMenuItem(
-            icon: Icons.format_paint, label: 'Yellow', color: '0xFFFFD740'),
-        SlashMenuItem(
-            icon: Icons.format_paint, label: 'Green', color: '0xFF69F0AE'),
-        SlashMenuItem(
-            icon: Icons.format_paint, label: 'Blue', color: '0xFF448AFF'),
-        SlashMenuItem(
-            icon: Icons.format_paint, label: 'Purple', color: '0xFFE040FB'),
         SlashMenuItem(
             icon: Icons.highlight,
             label: 'Highlight',
@@ -296,71 +269,6 @@ class _BlockWidgetState extends State<BlockWidget> {
       }
       return false;
     }).toList();
-  }
-
-  void _showStyleMenu() {
-    // Dismiss keyboard first
-    FocusManager.instance.primaryFocus?.unfocus();
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: AppTheme.cardDark,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.symmetric(vertical: 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Padding(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 0),
-                child: Text(
-                  'Change Style',
-                  style: GoogleFonts.inter(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 16),
-              Flexible(
-                child: ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: _allItems.length,
-                  separatorBuilder: (context, i) => Divider(
-                    height: 1,
-                    color: Colors.white.withValues(alpha: 0.1),
-                  ),
-                  itemBuilder: (context, index) {
-                    final item = _allItems[index];
-                    return _buildMenuItem(
-                      icon: item.icon,
-                      label: item.label,
-                      onTap: () {
-                        Navigator.pop(context); // Close modal
-
-                        // Apply style and REFOCUS
-                        if (item.type != null) {
-                          _selectType(item.type!);
-                        } else if (item.color != null) {
-                          _applyColor(item.color!,
-                              isBackground: item.isBackground);
-                        }
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
   }
 
   @override
