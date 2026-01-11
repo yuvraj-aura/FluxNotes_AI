@@ -319,7 +319,7 @@ class RichTextController extends TextEditingController {
     // For this prototype, we'll implement robust splitting.
 
     // 1. Remove spans fully covered by selection
-    _spans.removeWhere((s) => s.start >= start && s.end <= end);
+    // _spans.removeWhere((s) => s.start >= start && s.end <= end); // CRITICAL FIX: Do not remove here, let the loop handle it
 
     // 2. Truncate/Split overlapping spans
     List<StyleSpan> newSpans = [];

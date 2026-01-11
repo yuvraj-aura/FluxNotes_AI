@@ -504,30 +504,61 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             const SizedBox(height: 16),
             Consumer(builder: (context, ref, _) {
               final fontScale = ref.watch(fontScaleProvider);
-              return SegmentedButton<double>(
-                segments: const [
-                  ButtonSegment(value: 0.85, label: Text('Small')),
-                  ButtonSegment(value: 1.0, label: Text('Normal')),
-                  ButtonSegment(value: 1.15, label: Text('Large')),
-                ],
-                selected: {fontScale},
-                onSelectionChanged: (newSelection) {
-                  ref
-                      .read(fontScaleProvider.notifier)
-                      .setScale(newSelection.first);
-                },
-                style: ButtonStyle(
-                  backgroundColor: WidgetStateProperty.resolveWith((states) {
-                    if (states.contains(WidgetState.selected)) {
-                      return AppTheme.primaryBlue;
-                    }
-                    return Colors.transparent;
-                  }),
-                  foregroundColor: WidgetStateProperty.resolveWith((states) {
-                    return Colors.white;
-                  }),
-                  side: WidgetStateProperty.all(
-                      const BorderSide(color: Colors.white24)),
+
+              Widget buildOption(String label, double value, int flex,
+                  {bool isFirst = false, bool isLast = false}) {
+                final isSelected = fontScale == value;
+                return Expanded(
+                  flex: flex,
+                  child: InkWell(
+                    onTap: () {
+                      ref.read(fontScaleProvider.notifier).setScale(value);
+                    },
+                    borderRadius: BorderRadius.horizontal(
+                      left: isFirst ? const Radius.circular(24) : Radius.zero,
+                      right: isLast ? const Radius.circular(24) : Radius.zero,
+                    ),
+                    child: Container(
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isSelected
+                            ? AppTheme.primaryBlue
+                            : Colors.transparent,
+                        borderRadius: BorderRadius.horizontal(
+                          left:
+                              isFirst ? const Radius.circular(24) : Radius.zero,
+                          right:
+                              isLast ? const Radius.circular(24) : Radius.zero,
+                        ),
+                      ),
+                      child: Text(
+                        label,
+                        style: GoogleFonts.inter(
+                          color: Colors.white,
+                          fontWeight:
+                              isSelected ? FontWeight.w600 : FontWeight.w400,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }
+
+              return Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  children: [
+                    buildOption('Small', 0.85, 10, isFirst: true),
+                    Container(width: 1, color: Colors.white10),
+                    buildOption('Normal', 1.0, 14), // Extra space for Normal
+                    Container(width: 1, color: Colors.white10),
+                    buildOption('Large', 1.15, 10, isLast: true),
+                  ],
                 ),
               );
             }),

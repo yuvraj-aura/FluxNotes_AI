@@ -4,8 +4,8 @@ import 'package:flux_notes/core/services/ai_service.dart';
 import 'package:flux_notes/data/models/note_model.dart';
 import 'package:flux_notes/data/repositories/note_repository.dart';
 import 'package:flux_notes/features/editor/editor_screen.dart';
-import 'package:flux_notes/theme/app_theme.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:mesh_gradient/mesh_gradient.dart'; // Import mesh_gradient
 
 class SearchScreen extends ConsumerStatefulWidget {
   const SearchScreen({super.key});
@@ -14,9 +14,11 @@ class SearchScreen extends ConsumerStatefulWidget {
   ConsumerState<SearchScreen> createState() => _SearchScreenState();
 }
 
-class _SearchScreenState extends ConsumerState<SearchScreen> {
+class _SearchScreenState extends ConsumerState<SearchScreen>
+    with SingleTickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
 
+  // State
   String _searchQuery = '';
   String? _aiResponse;
   bool _isAiLoading = false;
@@ -62,206 +64,242 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
   @override
   Widget build(BuildContext context) {
     final notesAsync = ref.watch(notesStreamProvider);
+    final isSearchActive = _searchQuery.isNotEmpty;
 
     return Scaffold(
       resizeToAvoidBottomInset: false,
       extendBodyBehindAppBar: true,
       backgroundColor: Colors.black,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF0F172A), // Deep Slate Blue
-              Color(0xFF000000), // Black
-            ],
+      body: Stack(
+        children: [
+          // 1. Layer 0: Living Aurora Mesh Background
+          SizedBox.expand(
+            child: AnimatedMeshGradient(
+              colors: const [
+                Color(0xFF0F172A), // Deep Slate
+                Color(0xFF7C3AED), // Electric Violet
+                Color(0xFF06B6D4), // Neon Cyan
+                Color(0xFF000000), // Void Black
+              ],
+              options: AnimatedMeshGradientOptions(
+                speed: 2,
+                frequency: 3,
+                amplitude: 1,
+                grain: 0.2,
+              ),
+            ),
           ),
-        ),
-        child: SafeArea(
-          child: notesAsync.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (err, stack) => Center(
-                child: Text('Error: $err',
-                    style: const TextStyle(color: Colors.white))),
-            data: (allNotes) {
-              return Stack(
-                children: [
-                  // 1. Background / Placeholder for Graph
-                  if (_searchQuery.isEmpty)
-                    Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.hub,
-                              size: 64,
-                              color: Colors.white.withValues(alpha: 0.1)),
-                          const SizedBox(height: 16),
-                          Text(
-                            "Knowledge Graph Disabled",
-                            style: GoogleFonts.inter(color: Colors.white24),
-                          ),
-                        ],
-                      ),
-                    ),
 
-                  // 2. "Zero-Query" Suggested Chips
-                  if (_searchQuery.isEmpty &&
-                      !_isAiLoading &&
-                      _aiResponse == null &&
-                      allNotes.isNotEmpty)
-                    Positioned(
-                      top: 100,
+          // 2. Layer 1: Dimmer Overlay
+          AnimatedOpacity(
+            duration: const Duration(milliseconds: 500),
+            opacity: isSearchActive ? 0.7 : 0.0,
+            child: Container(color: Colors.black),
+          ),
+
+          // 3. Layer 2: Main Content
+          SafeArea(
+            child: notesAsync.when(
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (err, stack) => Center(
+                  child: Text('Error: $err',
+                      style: const TextStyle(color: Colors.white))),
+              data: (allNotes) {
+                return Stack(
+                  children: [
+                    // A. Center Logo (Inactive State)
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 600),
+                      curve: Curves.easeOutCubic,
+                      top: isSearchActive
+                          ? -200
+                          : MediaQuery.of(context).size.height / 2 -
+                              100, // Move up and out
                       left: 0,
                       right: 0,
-                      child: Center(
-                        // Center the chips horizontally
-                        child: Wrap(
-                          alignment: WrapAlignment.center,
-                          spacing: 12,
-                          runSpacing: 12,
-                          children: [
-                            _buildGlassChip("Summarize my week",
-                                () => _askAI(allNotes, "Summarize my week")),
-                            _buildGlassChip(
-                                "Project Status?",
-                                () => _askAI(allNotes,
-                                    "What is the status of my projects?")),
-                            _buildGlassChip(
-                                "Connect the dots",
-                                () => _askAI(allNotes,
-                                    "Find unexpected connections between my notes")),
-                          ],
-                        ),
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 400),
+                        opacity: isSearchActive ? 0.0 : 1.0,
+                        child: _buildBreathingLogo(),
                       ),
                     ),
 
-                  // 3. Search Results Overlay (Related Memories)
-                  // Only show AFTER AI responds, to keep the "thinking" phase clean.
-                  if (_searchQuery.isNotEmpty && _aiResponse != null)
-                    Positioned.fill(
-                      top: 80,
-                      child: Container(
-                        color: Colors.black.withValues(alpha: 0.85),
-                        child: _buildSearchResults(allNotes),
+                    // B. Results Container (Active State)
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.easeOutCubic,
+                      top: isSearchActive
+                          ? 80
+                          : MediaQuery.of(context)
+                              .size
+                              .height, // Slide up from bottom
+                      left: 0,
+                      right: 0,
+                      bottom: 0,
+                      child: AnimatedOpacity(
+                        duration: const Duration(milliseconds: 500),
+                        opacity: isSearchActive ? 1.0 : 0.0,
+                        child: _buildResultsArea(allNotes),
                       ),
                     ),
 
-                  // 4. Floating Search Bar
-                  Positioned(
-                    top: 16,
-                    left: 16,
-                    right: 16,
-                    child: _buildGlassSearchBar(allNotes),
-                  ),
-
-                  // 5. AI Response Card
-                  if (_aiResponse != null || _isAiLoading)
+                    // C. Floating Header (Always visible)
                     Positioned(
-                      bottom: 32,
+                      top: 16,
                       left: 16,
                       right: 16,
-                      child: _buildAiResponseCard(),
-                    )
-                ],
-              );
-            },
+                      child: _buildGlassSearchBar(allNotes, isSearchActive),
+                    ),
+                  ],
+                );
+              },
+            ),
           ),
-        ),
+        ],
       ),
     );
   }
 
   // --- Widgets ---
 
-  Widget _buildGlassSearchBar(List<Note> allNotes) {
+  Widget _buildBreathingLogo() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Using a scale animation wrapper would be ideal, but for now simple structure
+        // Enhancing with a simple TweenAnimationBuilder for "Breathing"
+        TweenAnimationBuilder(
+          tween: Tween<double>(begin: 0.95, end: 1.05),
+          duration: const Duration(seconds: 4),
+          curve: Curves.easeInOut,
+          builder: (context, scale, child) {
+            return Transform.scale(
+              scale: scale,
+              child: Container(
+                width: 112, // w-28
+                height: 112, // h-28
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border:
+                      Border.all(color: Colors.white.withValues(alpha: 0.1)),
+                  color: Colors.white
+                      .withValues(alpha: 0.1), // glass-panel style attempt
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      blurRadius: 30,
+                      spreadRadius: 10,
+                    )
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(Icons.blur_on, size: 48, color: Colors.white70),
+                ),
+              ),
+            );
+          },
+          onEnd:
+              () {}, // Infinite loop requires stateful explicit animation, simplified here
+        ),
+        const SizedBox(height: 24),
+        Text(
+          "FLUX",
+          style: GoogleFonts.inter(
+            fontSize: 30,
+            fontWeight: FontWeight.w200,
+            letterSpacing: 8, // tracking-[0.5em]
+            color: Colors.white.withValues(alpha: 0.9),
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          "INTELLIGENCE",
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            fontWeight: FontWeight.w400,
+            letterSpacing: 4, // tracking-[0.3em]
+            color: Colors.white38,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGlassSearchBar(List<Note> allNotes, bool isActive) {
     return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      height: 56, // h-14
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.15), // Slightly more opaque
-        borderRadius: BorderRadius.circular(30),
-        border:
-            Border.all(color: Colors.white.withValues(alpha: 0.2), width: 0.5),
+        color: Colors.white.withValues(alpha: 0.1), // glass-panel bg-white/10
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.1),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          )
+        ],
       ),
       child: Row(
         children: [
-          const Icon(Icons.bubble_chart, color: Colors.white70),
+          Icon(Icons.search,
+              color: Colors.white.withValues(alpha: 0.5), size: 22),
           const SizedBox(width: 12),
           Expanded(
             child: TextField(
               controller: _searchController,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 16),
+              style: GoogleFonts.inter(
+                  color: Colors.white,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w300),
               decoration: InputDecoration(
-                hintText: "Ask Flux Intelligence...",
-                hintStyle: GoogleFonts.inter(color: Colors.white38),
+                hintText: "Search Flux Intelligence...",
+                hintStyle: GoogleFonts.inter(
+                    color: Colors.white.withValues(alpha: 0.4)),
                 border: InputBorder.none,
+                isDense: true,
+                contentPadding: EdgeInsets.zero,
               ),
               onChanged: (val) {
                 setState(() {
                   _searchQuery = val;
-                  // Clear AI response if typing new query, but keep text field active
                   if (val.isEmpty) _aiResponse = null;
                 });
               },
               onSubmitted: (val) {
                 if (val.trim().isNotEmpty) {
-                  // DIRECT AI TRIGGER
                   _askAI(allNotes, val);
-                  // Dismiss keyboard for cleaner UI
                   FocusScope.of(context).unfocus();
                 }
               },
             ),
           ),
-          // AI Passive Indicator / Trigger
-          if (_searchQuery.isNotEmpty && !_isAiLoading)
+          if (isActive)
             IconButton(
-              icon: const Icon(Icons.auto_awesome, color: Colors.blueAccent),
-              onPressed: () {
-                // Keep as secondary trigger
-                _askAI(allNotes, _searchQuery);
-                FocusScope.of(context).unfocus();
-              },
-            ),
-          if (_searchQuery.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.white54),
+              icon: Icon(Icons.close,
+                  color: Colors.white.withValues(alpha: 0.5), size: 20),
               onPressed: () {
                 _searchController.clear();
                 setState(() {
                   _searchQuery = '';
                   _aiResponse = null;
-                  _isAiLoading = false;
                 });
+                FocusScope.of(context).unfocus();
               },
             )
+          else
+            Icon(Icons.mic,
+                color: Colors.white.withValues(alpha: 0.6), size: 20),
         ],
       ),
     );
   }
 
-  Widget _buildGlassChip(String label, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.1), // No blur
-          borderRadius: BorderRadius.circular(20),
-          border: Border.all(color: Colors.white.withValues(alpha: 0.1)),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-              color: Colors.white.withValues(alpha: 0.8), fontSize: 13),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSearchResults(List<Note> allNotes) {
-    if (_isAiLoading) return const SizedBox.expand(); // AI Card handles loading
+  Widget _buildResultsArea(List<Note> allNotes) {
+    // Combine filtered notes + AI interaction
+    // If AI is loading or has response, show that.
+    // Else show note results.
 
     final results = allNotes.where((n) {
       final q = _searchQuery.toLowerCase();
@@ -269,48 +307,107 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           n.blocks.any((b) => b.content.toLowerCase().contains(q));
     }).toList();
 
-    if (results.isEmpty && _aiResponse == null) {
-      return Center(
-        child: Text("No memories found.",
-            style: GoogleFonts.inter(color: Colors.white38)),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.fromLTRB(16, 20, 16, 100),
-      itemCount: results.length,
-      itemBuilder: (context, index) {
-        final note = results[index];
-        final preview = note.blocks.map((b) => b.content).join(" ");
-
-        return Container(
-          margin: const EdgeInsets.only(bottom: 12),
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: AppTheme.cardDark,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white10),
+    return Column(
+      children: [
+        // AI Response Area
+        if (_isAiLoading || _aiResponse != null)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: _buildAiResponseCard(),
           ),
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            title: Text(note.title.isNotEmpty ? note.title : "Untitled",
-                style: GoogleFonts.inter(
-                    color: Colors.white, fontWeight: FontWeight.w600)),
-            subtitle: Text(
-              preview,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(color: Colors.white54, fontSize: 12),
+
+        // Results List
+        Expanded(
+          child: results.isEmpty && !_isAiLoading && _aiResponse == null
+              ? Center(
+                  child: Text(
+                    "No signals found.",
+                    style: GoogleFonts.inter(color: Colors.white38),
+                  ),
+                )
+              : ListView.builder(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
+                  itemCount: results.length,
+                  itemBuilder: (context, index) {
+                    final note = results[index];
+                    return _buildGlassResultCard(note);
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGlassResultCard(Note note) {
+    // HTML ref: .glass-panel p-6 rounded-[2rem] active:scale-[0.98]
+    // Content: Date/Type label, Title, Preview text
+    final preview = note.blocks.map((b) => b.content).join(" ");
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(32), // rounded-[2rem]
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(32),
+          onTap: () {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                  builder: (context) => EditorScreen(noteId: note.id)),
+            );
+          },
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      "NOTE • ${note.updatedAt.day}/${note.updatedAt.month}",
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.5, // tracking-widest
+                        color: Colors.white.withValues(alpha: 0.4),
+                      ),
+                    ),
+                    Icon(Icons.north_east,
+                        size: 18, color: Colors.white.withValues(alpha: 0.3)),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  note.title.isNotEmpty ? note.title : "Untitled",
+                  style: GoogleFonts.inter(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white.withValues(alpha: 0.9),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  preview,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w300,
+                    height: 1.5, // leading-relaxed
+                    color: Colors.white.withValues(alpha: 0.6),
+                  ),
+                ),
+              ],
             ),
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                    builder: (context) => EditorScreen(noteId: note.id)),
-              );
-            },
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
@@ -343,9 +440,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
               const SizedBox(width: 8),
               Text(
                 "Flux Intelligence",
-                style: GoogleFonts.oswald(
-                  // Fallback or use standard if missing
-                  fontSize: 14,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
                   fontWeight: FontWeight.bold,
                   color: const Color(0xFF3B82F6),
                   letterSpacing: 1.5,
@@ -363,21 +459,20 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           const SizedBox(height: 16),
           if (_isAiLoading)
             Center(
-              child: ShaderMask(
-                shaderCallback: (bounds) =>
-                    const LinearGradient(colors: [Colors.blue, Colors.purple])
-                        .createShader(bounds),
-                child: const CircularProgressIndicator(color: Colors.white),
-              ),
-            )
+                child: SizedBox(
+              height: 20,
+              width: 20,
+              child: CircularProgressIndicator(
+                  strokeWidth: 2, color: Colors.white70),
+            ))
           else
             Text(
               _aiResponse!,
-              style: GoogleFonts.sourceCodePro(
-                // Typewriter feel
+              style: GoogleFonts.inter(
                 color: Colors.white.withValues(alpha: 0.9),
                 fontSize: 14,
                 height: 1.6,
+                fontWeight: FontWeight.w300,
               ),
             ),
         ],
