@@ -1,10 +1,10 @@
-import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flux_notes/core/services/ai_service.dart';
 import 'package:flux_notes/data/models/note_model.dart';
 import 'package:flux_notes/data/repositories/note_repository.dart';
 import 'package:flux_notes/features/editor/editor_screen.dart';
+import 'package:flux_notes/features/search/widgets/reactor_hex_grid.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SearchScreen extends ConsumerStatefulWidget {
@@ -15,16 +15,37 @@ class SearchScreen extends ConsumerStatefulWidget {
 }
 
 class _SearchScreenState extends ConsumerState<SearchScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   final TextEditingController _searchController = TextEditingController();
+  late AnimationController _iconFloatController;
+  late Animation<Offset> _iconFloatAnimation;
 
   String _searchQuery = '';
   String? _aiResponse;
   bool _isAiLoading = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Animation for Floating Icon
+    _iconFloatController = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 3),
+    )..repeat(reverse: true);
+
+    _iconFloatAnimation = Tween<Offset>(
+      begin: const Offset(0, 0),
+      end: const Offset(0, -0.1), // Float up slightly
+    ).animate(CurvedAnimation(
+      parent: _iconFloatController,
+      curve: Curves.easeInOutSine,
+    ));
+  }
+
+  @override
   void dispose() {
     _searchController.dispose();
+    _iconFloatController.dispose();
     super.dispose();
   }
 
@@ -74,12 +95,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
       backgroundColor: bgDark,
       body: Stack(
         children: [
-          // 1. Static Hexagon Pattern Background
-          Positioned.fill(
-            child: CustomPaint(
-              painter: HexagonPatternPainter(
-                color: const Color(0xFF161B2E), // Subtle hexagon color
-              ),
+          // 1. Living Reactor Background (Replaces Static HexagonPatternPainter)
+          const Positioned.fill(
+            child: ReactorHexGrid(
+              baseColor: Color(0xFF161B2E),
+              activeColor: Colors.white,
             ),
           ),
 
@@ -89,7 +109,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               decoration: BoxDecoration(
                 gradient: RadialGradient(
                   center: Alignment.center,
-                  radius: 1.2, // Spread it out
+                  radius: 1.2,
                   colors: [
                     Colors.transparent,
                     Colors.black.withValues(alpha: 0.8),
@@ -268,7 +288,9 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
               )
             ],
           ),
-          child: Icon(Icons.rocket_launch, color: primary, size: 48),
+          child: SlideTransition(
+              position: _iconFloatAnimation,
+              child: Icon(Icons.rocket_launch, color: primary, size: 48)),
         ),
         const SizedBox(height: 16),
         Text(
@@ -606,68 +628,6 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
       ),
     );
   }
-}
-
-// --- Background Painter ---
-
-class HexagonPatternPainter extends CustomPainter {
-  final Color color;
-
-  HexagonPatternPainter({required this.color});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    // Implementing a simplified hexagon grid simulation using repeating circles/paths
-    // or just simplified geometry for 'hexagon-pattern'.
-    // A true mesh is expensive to draw via paths.
-    // simpler visual trick: Staggered dashes or dots.
-    // CSS uses linear gradients. We can try to replicate roughly.
-
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1.0
-      ..style = PaintingStyle.stroke;
-
-    // Hexagon width/height relationship
-    // Width = sqrt(3) * size
-    // Height = 2 * size
-    const double hexRadius = 24.0;
-    const double hexWidth = 1.732 * hexRadius; // ~41.5
-    const double hexHeight = 2.0 * hexRadius; // 48
-    const double vertDist = 0.75 * hexHeight; // 36
-
-    // We'll just draw points or small lines to hint the grid, keeping it low noise
-    // OR create a path.
-
-    for (double y = 0; y < size.height + hexHeight; y += vertDist) {
-      int row = (y / vertDist).floor();
-      bool isOddRow = row % 2 != 0;
-      double xOffset = isOddRow ? hexWidth / 2 : 0;
-
-      for (double x = xOffset; x < size.width + hexWidth; x += hexWidth) {
-        _drawHexagon(canvas, Offset(x, y), hexRadius, paint);
-      }
-    }
-  }
-
-  void _drawHexagon(Canvas canvas, Offset center, double radius, Paint paint) {
-    final path = Path();
-    for (int i = 0; i < 6; i++) {
-      double angle = (60 * i + 30) * math.pi / 180;
-      double x = center.dx + radius * math.cos(angle);
-      double y = center.dy + radius * math.sin(angle);
-      if (i == 0) {
-        path.moveTo(x, y);
-      } else {
-        path.lineTo(x, y);
-      }
-    }
-    path.close();
-    canvas.drawPath(path, paint);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class GlowingDot extends StatelessWidget {
