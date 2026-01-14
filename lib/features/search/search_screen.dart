@@ -294,7 +294,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
         ),
         const SizedBox(height: 16),
         Text(
-          "The Hive",
+          "The Flux",
           style: GoogleFonts.spaceGrotesk(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -349,7 +349,7 @@ class _SearchScreenState extends ConsumerState<SearchScreen>
                   fontSize: 18,
                   fontWeight: FontWeight.normal),
               decoration: InputDecoration(
-                hintText: "Query the Hive...",
+                hintText: "Query the Flux...",
                 hintStyle: GoogleFonts.spaceGrotesk(
                     color: Colors.white.withValues(alpha: 0.3)),
                 border: InputBorder.none,

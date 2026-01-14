@@ -20,6 +20,7 @@ class _ReactorHexGridState extends State<ReactorHexGrid>
   late AnimationController _controller;
   List<Offset> _hexCenters = [];
   int _activeHexIndex = -1;
+  // ignore: unused_field
   final double _hexRadius =
       24.0; // Hex Size: 40? User said 40.0. Radius 24 is ~48 height.
   // User req: "Hex Size: 40.0" -> usually means radius for flat top being 2 * size width?
@@ -76,7 +77,6 @@ class _ReactorHexGridState extends State<ReactorHexGrid>
 
     // If user meant "Hex Size 40" as radius:
     const double r = 24.0;
-    const double width = 2 * r;
     const double height = 1.732 * r;
     const double horizDist = 1.5 * r;
     const double vertDist = height; // row to row
